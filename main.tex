@@ -1,15 +1,20 @@
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
+
 \documentclass[master]{thuthesis}
 
 \usepackage{thutils}
 
 
 % 你可以在这里修改配置文件中的定义，导言区可以使用中文。
-% \def\myname{薛瑞尼}
+\def\myname{刘盛鹏}
 
 \begin{document}
 	
 % 定义所有的eps文件在 figures 子目录下
-%\graphicspath{{figures/}}
+\graphicspath{{figure/}}
 
 
 %%% 封面部分
@@ -26,22 +31,21 @@
 
 %%% 正文部分
 \mainmatter
-%\include{data/chap01}
-%\include{data/chap02}
-
+\include{data/chap01}
+\include{data/chap02}
+\include{data/chap03}
+\include{data/chap04}
+\include{data/chap05}
 
 %%% 其它部分
 \backmatter
 
-
-
 % 参考文献
-%\bibliographystyle{thubib}
-%\bibliography{ref/refs}
-
+\bibliographystyle{thubib}
+\bibliography{ref/reference}
 
 % 致谢
-%\include{data/ack}
+\include{data/ack}
 
 %% 附录
 %\begin{appendix}
