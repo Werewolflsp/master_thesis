@@ -4,8 +4,10 @@
 %%% End:
 
 \chapter{基于Uppaal的中断模型}
+\label{cha:intr}
 
-\section{Uppaal中的模型组成}	
+\section{Uppaal中的模型组成}
+\label{sec:model_combine}	
 一套Uppaal模型由以下三部分组成。
 \begin{itemize}
 	\item \emph{声明}：整个模型系统中共有的声明，可以是变量或函数。在整个
@@ -27,13 +29,38 @@
 \end{itemize}
 
 \section{中断基本模型}
+\label{sec:basic}
+通常，在我们接触到的非实时性电脑环境中，中断的行为就是符合一个中断的基本模型。
+其行为模式就是简单的抢占当前线程，在中断程序执行结束之后恢复上下文继续执行被抢
+占的线程。
+单独的中断程序的行为，与并行程序研究中的线程行为十分相似。
+\begin{figure}
+\centering
+\input{figure/thread_states}
+\caption{单个线程的状态}
+\label{fig:thread_state}
+\end{figure}
+
 \subsection{通用的硬件实现}
+\label{subsec:basic_hardware}
+
 \subsection{Uppaal中的基本中断模型}
+\label{subsec:basic_uppaal}
 
 \section{带重入的中断模型}
+\label{sec:reentrant}
+
 \subsection{重入的硬件实现}
+\label{subsec:reentrant_hardware}
+
 \subsection{Uppaal中的重入中断模型}
+\label{subsec:reentrant_uppaal}
 
 \section{分段中断模型}
+\label{sec:segment}
+
 \subsection{软件的二次实现}
+\label{subsec:segment_software}
+
 \subsection{Uppaal中的分段中断模型}
+\label{subsec:segment_uppaal}
