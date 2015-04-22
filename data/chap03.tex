@@ -34,26 +34,40 @@
 其行为模式就是简单的抢占当前线程，在中断程序执行结束之后恢复上下文继续执行被抢
 占的线程。
 
-\begin{figure}
+\begin{figure}[H]
 	\centering
 	\input{figure/thread_states}
 	\caption{单个线程的状态}
 	\label{fig:thread_state}
 \end{figure}
 
-单独的中断程序的行为，与多线程程序研究中的线程行为十分相似。如图~
-\ref{fig:thread_state}所示，通常，一个线程会被刻画为以下三个状态。
+单独的中断程序的行为，与多线程程序研究中的线程行为十分相似。我们对中断模型的构
+建就参考了多线程程序中的线程模型。如图~\ref{fig:thread_state}所示，通常，一个
+线程会被刻画为以下三个状态。
 \begin{itemize}
 	\item \emph{就绪}：线程可以运行但是当前并不占有CPU。
 	\item \emph{运行}：线程正在运行。
 	\item \emph{阻塞}：线程在等待处理器以外的资源，暂时无法运行。
 \end{itemize}
 由于绝大部分多线程程序研究的场景中，并不关心线程产生和终止。换言之，线程在这类
-应用场景里直接存在，且永不终止。线程的切换由一个软件层面的调度器控制。
+应用场景里直接存在，且永不终止。中断研究中，一个中断程序通常具有一个从产生到终
+止的完整周期。而且，一个中断并非只触发一次，因此一个中断程序可能重复多次上述周
+期。这与传统的多线程程序研究是不同的。所以针对一个中断程序，我们类比线程再加以
+修改可以得到如图~\ref{fig:interrupt_state}所示的状态机。每个状态的含义如下。
 
-中断研究中，一个中断程序通常具有一个从产生到终止的完整周期。而且，一个中断并非
-只触发一次，因此一个中断程序可能重复多次上述周期。这与传统的多线程程序研究是不
-同的。
+\begin{figure}[H]
+	\centering
+	\input{figure/interrupt_states}
+	\caption{单个中断程序的状态}
+	\label{fig:interrupt_state}
+\end{figure}
+
+\begin{itemize}
+	\item \emph{无中断}：当前中断没有触发。
+	\item \emph{就绪}：中断触发但是有优先级更高的中断在执行。
+	\item \emph{运行}：中断程序正在运行。
+	\item \emph{阻塞}：中断程序被优先级更高的中断打断。
+\end{itemize}
 
 \subsection{通用的硬件实现}
 \label{subsec:basic_hardware}
