@@ -15,54 +15,9 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
-   sodipodi:docname="ecos_interrupt_model.svg">
+   sodipodi:docname="interrupt_exec_model.svg">
   <defs
      id="defs4">
-    <marker
-       inkscape:isstock="true"
-       style="overflow:visible"
-       id="marker9330"
-       refX="0"
-       refY="0"
-       orient="auto"
-       inkscape:stockid="Arrow2Lend">
-      <path
-         inkscape:connector-curvature="0"
-         transform="matrix(-1.1,0,0,-1.1,-1.1,0)"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
-         id="path9332" />
-    </marker>
-    <marker
-       inkscape:isstock="true"
-       style="overflow:visible"
-       id="marker9096"
-       refX="0"
-       refY="0"
-       orient="auto"
-       inkscape:stockid="Arrow2Lend">
-      <path
-         inkscape:connector-curvature="0"
-         transform="matrix(-1.1,0,0,-1.1,-1.1,0)"
-         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
-         id="path9098" />
-    </marker>
-    <marker
-       inkscape:isstock="true"
-       style="overflow:visible"
-       id="marker8208"
-       refX="0"
-       refY="0"
-       orient="auto"
-       inkscape:stockid="Arrow1Lend">
-      <path
-         inkscape:connector-curvature="0"
-         transform="matrix(-0.8,0,0,-0.8,-10,0)"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
-         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
-         id="path8210" />
-    </marker>
     <marker
        inkscape:stockid="Arrow2Lend"
        orient="auto"
@@ -70,8 +25,7 @@
        refX="0"
        id="marker4830"
        style="overflow:visible"
-       inkscape:isstock="true"
-       inkscape:collect="always">
+       inkscape:isstock="true">
       <path
          id="path4832"
          style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
@@ -86,8 +40,7 @@
        refX="0"
        id="Arrow2Lend"
        style="overflow:visible"
-       inkscape:isstock="true"
-       inkscape:collect="always">
+       inkscape:isstock="true">
       <path
          id="path4591"
          style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
@@ -117,8 +70,7 @@
        refX="0"
        id="Arrow1Lend"
        style="overflow:visible"
-       inkscape:isstock="true"
-       inkscape:collect="always">
+       inkscape:isstock="true">
       <path
          id="path4221"
          d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
@@ -209,7 +161,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.7"
-     inkscape:cx="-151.97537"
+     inkscape:cx="58.73892"
      inkscape:cy="24.470595"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -231,7 +183,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -251,42 +203,38 @@
        id="path3338-0"
        inkscape:connector-curvature="0" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.76248366px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
-       d="m 130.01085,136.64792 0,92.19047"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.5905543px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 240.29528,242.3622 0,140"
+       id="path3338-2"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.5905543px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 300.29528,242.3622 0,140"
+       id="path3338-2-9"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="m 130.01085,136.64792 0,158.57143"
        id="path3412"
        inkscape:connector-curvature="0" />
-    <g
-       id="g6526"
-       transform="translate(-2.8571429,-24.285714)">
-      <path
-         inkscape:connector-curvature="0"
-         id="path3338-2"
-         d="m 239.581,220.21935 0,65"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.40239492px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
-      <path
-         inkscape:connector-curvature="0"
-         id="path3338-2-9"
-         d="m 304.581,221.64792 0,65"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.40239492px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
-      <path
-         inkscape:connector-curvature="0"
-         id="path3412-2"
-         d="m 271.42857,212.16647 0,82.26409"
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.72026557px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-5)" />
-    </g>
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.78536278px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-5-7)"
-       d="m 130.18621,370.77403 0,97.80602"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.03499508px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-5)"
+       d="m 272.85714,223.59505 0,169.86407"
+       id="path3412-2"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.03499508px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-5-7)"
+       d="m 130.18621,312.2026 0,169.86407"
        id="path3412-2-1"
        inkscape:connector-curvature="0" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.82630062px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow2Lend)"
-       d="M 128.43413,233.82054 267.27765,179.30577"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow2Lend)"
+       d="m 132.85714,299.50506 138.57143,-80"
        id="path4564"
        inkscape:connector-curvature="0" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.65424353px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker4830)"
-       d="M 271.4071,277.34853 131.44214,236.56896"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker4830)"
+       d="M 271.42857,395.21935 130,300.93363"
        id="path4828"
        inkscape:connector-curvature="0" />
     <flowRoot
@@ -305,7 +253,7 @@
        xml:space="preserve"
        id="flowRoot4844"
        style="font-style:normal;font-weight:normal;font-size:25px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       transform="translate(21.428571,-42.857143)"><flowRegion
+       transform="translate(20,7.1428571)"><flowRegion
          id="flowRegion4846"><rect
            id="rect4848"
            width="158.57143"
@@ -313,49 +261,5 @@
            x="192.85715"
            y="166.64792"
            style="font-size:25px" /></flowRegion><flowPara
-         id="flowPara4850">中断执行流</flowPara></flowRoot>    <g
-       id="g6579"
-       transform="translate(-4.2857143,112.85715)">
-      <path
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.40239492px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-         d="m 239.581,220.21935 0,65"
-         id="path6581"
-         inkscape:connector-curvature="0" />
-      <path
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.40239492px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-         d="m 304.581,221.64792 0,65"
-         id="path6583"
-         inkscape:connector-curvature="0" />
-      <path
-         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.72026557px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-5)"
-         d="m 271.42857,212.16647 0,82.26409"
-         id="path6585"
-         inkscape:connector-curvature="0" />
-    </g>
-    <path
-       inkscape:connector-curvature="0"
-       id="path8206"
-       d="m 130.01085,245.21935 0,120.33819"
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.87114263px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker8208)" />
-    <path
-       inkscape:connector-curvature="0"
-       id="path9094"
-       d="M 129.8627,368.10625 268.70622,313.59148"
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.82630062px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker9096)" />
-    <path
-       inkscape:connector-curvature="0"
-       id="path9328"
-       d="M 274.26424,411.63424 134.29928,370.85467"
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.65424353px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker9330)" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:4,4;stroke-dashoffset:0;stroke-opacity:1"
-       d="m 238.02148,258.2361 -1.42857,80"
-       id="path9502"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:4, 4;stroke-dashoffset:0;stroke-opacity:1"
-       d="m 300.87862,255.37896 -1.42857,80"
-       id="path9566"
-       inkscape:connector-curvature="0" />
-  </g>
+         id="flowPara4850">中断执行流</flowPara></flowRoot>  </g>
 </svg>
