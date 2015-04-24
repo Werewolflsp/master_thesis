@@ -62,8 +62,8 @@ Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若
 迟同时运行时间较短的代码放在第一段，其他的对延时不敏感，或者任务繁重，或
 者需要和其他线程进行同步交互的代码放在第二段，就能在满足实时性要求的前提
 下完成该中断。eCos等许多操作系统尽管实现方式各异，采用的都是分段中断的模
-式。\cite{ecos}图~\ref{fig:intr_exec}和图~\ref{fig:ecos_intr_exec}分
-别展示了上述两种中断的执行流。
+式。\cite{ecos}图~\ref{fig:intr_exec} 和图~\ref{fig:ecos_intr_exec} 
+分别展示了两种中断的执行流。
 
 \begin{figure}[H]
 	\centering
