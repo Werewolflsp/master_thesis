@@ -46,10 +46,10 @@ Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若
 或两针）的复用。作为另一种中断实现的形式，即存储器子系统实现方式，可以将
 中断端口映射到存储器的地址空间，这样对特定存储器地址的访问实际上是中断请
 求。一般桌面领域的PC机中，中断控制器一般是集成在处理器内部，\footnote{
-例如Intel推出的8086A系列处理器中，集成了Intel 8259系列中断控制器。}
+例如\intel{}推出的8086系列处理器中，集成了\intel{} 8259系列中断控制器。}
 而在嵌入式领域，很多厂商推出的微控制器实现了外置的中断控制器。\footnote{
-例如STMicroelectronics推出的STM32F4系列微控制器中，在ARM的CPU外提
-供了中断控制器。}
+例如意法半导体（STMicroelectronics）推出的STM32F4系列微控制器中，在ARM
+的CPU外提供了中断控制器。}
 
 \subsection{操作系统中的中断}
 \label{subsec:intr_OS}
