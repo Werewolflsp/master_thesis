@@ -255,13 +255,42 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\textwidth]{Interrupt_basic}
-	\caption{基本中断的状态机}
+	\caption{基本中断:状态机}
 	\label{fig:interrupt_basic}
 \end{figure}
 
 基本中断的状态机如图~\ref{fig:interrupt_basic} 所示，在这个状态机的状态在Uppaal
 中称为位置（Location），以便于整个模型的状态相区分。该模板的内部声明、参数、位置
-和变迁的说明分别如表~所示。
+和变迁的说明分别如表~\ref{tab:basic_intr_decl} ，表~\ref{tab:basic_intr_para} ,
+所示。
+
+\begin{table}[htb]
+	\centering
+	\caption{基本中断：内部声明}
+	\label{tab:basic_intr_decl}
+	\begin{tabular*}{\linewidth}{p{7em}p{5em}l}
+		\toprule[1.5pt]
+		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
+		\midrule[1pt]
+		intTime & clock & 从CPU检测中断信号开始中断实际运行的时间$t$ \\
+		timeSinceStart & clock & 中断响应耗时$T^\prime$ \\
+		\bottomrule[1.5pt]
+	\end{tabular*}
+\end{table}
+
+\begin{table}[htb]
+	\centering
+	\caption{基本中断：参数}
+	\label{tab:basic_intr_para}
+	\begin{tabular*}{\linewidth}{p{7em}p{5em}l}
+		\toprule[1.5pt]
+		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
+		\midrule[1pt]
+		id & int & 中断号，也是中断优先级 \\
+		exeTime & int & 中断处理时间$T$ \\
+		\bottomrule[1.5pt]
+	\end{tabular*}
+\end{table}
 
 \section{带重入的中断模型}
 \label{sec:reentrant}
