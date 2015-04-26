@@ -204,7 +204,64 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 者实体控制，而是根据一些规则实行了“民主协商自治”。但是，由于“自治”的规则与管理控
 制的规则完全相同，因此实现的效果是相同的。
 
-至此，我们可以在Uppaal中构建基本中断的模型了。
+至此，我们可以在Uppaal中构建基本中断的模型了。按照~\ref{sec:model_combine} 节
+中介绍的顺序，现在分别展示模型的各个部分。
+
+\subsubsection{声明}
+\label{subsubsec:basic_decl}
+
+如图~\ref{fig:basic_decl} 所示，第1行定义了中断优先级的总数，代码中的数字只是
+一个例子。第2行定义了一个数据类型，它的作用就如它的名字一样，中断ID。同时，它也
+是中断的优先级，数字越小，优先级越高。优先级最高的是0号中断。接下来定义信道，第
+3行定义了一组通信信道，分别对应每个中断。第4行定义了两个广播信道。普通信道的信号
+只能有一个发送者，一个接收者；广播信道则有一个发送者和多个接收者。普通信道的作用
+是用于环境触发特定中断，而广播信道就用来实现抢占，或者由被抢占重新占有CPU的效果。
+第5行定义了一个布尔变量数组，模拟ISR（Interrupt Service Register)寄存器。这个
+寄存器通常是中断控制器的重要组成部分，在不同硬件平台上有不同的名字，甚至可能代表
+了多个寄存器。它的作用指示当前有哪几个中断需要处理，包含正在处理的中断。如果某一
+个中断尚未处理结束，即该寄存器某一位置位时，同一中断的下一个实例又触发了，在基本
+中断模型中，会被忽略。第8-17行定义了一个函数用来获取当前存在的优先级最高的中断的
+优先级（或者说ID）。但是，如果ISR数组里的值都是False，即当前没有任意一个中断需要
+处理，那么该函数返回N。优先级N不对应任何一个中断，我们可以认为优先级N对应的是普
+通代码。
+
+\begin{figure}[H]
+	\centering
+	\begin{lstlisting}
+	const int N = 7;
+	typedef int[0, N-1] intr_id; 
+	chan intr[intr_id];
+	urgent broadcast chan prompt, resume;
+	bool ISR[intr_id] = {false, false,false,
+					false,false,false,false};
+	
+	typedef int[0,N] Pri;
+	Pri get_highest_pri(){
+		meta int i;
+		for(i = 0; i < N; i++){
+			if(ISR[i]){
+			return i;
+			} 
+		}
+		return N;
+	}
+	\end{lstlisting}
+	\caption{基本中断：全局定义}
+	\label{fig:basic_decl}
+\end{figure}
+
+\subsubsection{基本中断模板}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{Interrupt_basic}
+	\caption{基本中断的状态机}
+	\label{fig:interrupt_basic}
+\end{figure}
+
+基本中断的状态机如图~\ref{fig:interrupt_basic} 所示，在这个状态机的状态在Uppaal
+中称为位置（Location），以便于整个模型的状态相区分。该模板的内部声明、参数、位置
+和变迁的说明分别如表~所示。
 
 \section{带重入的中断模型}
 \label{sec:reentrant}
