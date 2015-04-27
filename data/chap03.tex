@@ -246,65 +246,157 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 		return N;
 	}
 	\end{lstlisting}
-	\caption{基本中断：全局定义}
+	\caption{基本中断模型：全局定义}
 	\label{fig:basic_decl}
 \end{figure}
 
 \subsubsection{基本中断模板}
 
-\begin{figure}[H]
+\begin{figure}
 	\centering
-	\includegraphics[width=\textwidth]{Interrupt_basic}
+	\includegraphics[width=0.9\textwidth]{Interrupt_basic}
 	\caption{基本中断:状态机}
 	\label{fig:interrupt_basic}
 \end{figure}
 
 基本中断的状态机如图~\ref{fig:interrupt_basic} 所示，在这个状态机的状态在Uppaal
 中称为位置（Location），以便于整个模型的状态相区分。该模板的内部声明、参数、位置
-和变迁的说明分别如表~\ref{tab:basic_intr_decl} ，表~\ref{tab:basic_intr_para} ,
-所示。
+和变迁的说明分别如表~\ref{tab:basic_intr_decl}，表~\ref{tab:basic_intr_para}，
+表~\ref{tab:basic_intr_loc}，表~\ref{tab:basic_intr_mov} 所示。这里，我们定义
+
+\begin{definition}
+	中断实际处理时间$t$，指从CPU接收到本中断信号开始到当前时刻的时间。
+\end{definition}
+
+注意，表~\ref{tab:basic_intr_mov} 中并没有选择一列，因为在该模板中，所有的位置
+变迁都没有规定选择属性。
 
 \begin{table}[htb]
 	\centering
-	\caption{基本中断：内部声明}
+	\caption{基本中断模板：内部声明}
 	\label{tab:basic_intr_decl}
-	\begin{tabular*}{\linewidth}{p{7em}p{5em}l}
+	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
 		\toprule[1.5pt]
 		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
 		\midrule[1pt]
-		intTime & clock & 从CPU检测中断信号开始中断实际运行的时间$t$ \\
+		intTime & clock & 中断实际处理时间$t$ \\
+		\midrule[0.5pt]
 		timeSinceStart & clock & 中断响应耗时$T^\prime$ \\
 		\bottomrule[1.5pt]
-	\end{tabular*}
+	\end{tabularx}
 \end{table}
 
 \begin{table}[htb]
 	\centering
-	\caption{基本中断：参数}
+	\caption{基本中断模板：参数}
 	\label{tab:basic_intr_para}
-	\begin{tabular*}{\linewidth}{p{7em}p{5em}l}
+	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
 		\toprule[1.5pt]
 		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
 		\midrule[1pt]
 		id & int & 中断号，也是中断优先级 \\
+		\midrule[0.5pt]
 		exeTime & int & 中断处理时间$T$ \\
 		\bottomrule[1.5pt]
-	\end{tabular*}
+	\end{tabularx}
 \end{table}
 
-\begin{table}[htb]
+\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
+	\caption{基本中断模板：位置}
+	\label{tab:basic_intr_loc}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{4}{c}{续表~\thetable\hskip1em 基本中断模板：位置}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{4}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & 初始位置 & intTime和timeSinceStart保持静止，ISR对应位为false & 
+	初始位置，当前没有该中断\\
+	\midrule[0.5pt]
+	Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
+	\midrule[0.5pt]
+	Wait & & intTime保持静止，ISR对应位为true & 当前有优先级更高的中断在运
+	行，本中断等待。\\
+	\midrule[0.5pt]
+	Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
+	的语义设置的辅助位置\\
+	\midrule[0.5pt]
+	On & & intTime不超过exeTime，ISR对应位为true & 中断正在被处理 \\
+	\midrule[0.5pt]
+	Suspend & & intTime静止，ISR对应位为true & 中断被更高优先级抢占CPU \\ 
+	\midrule[0.5pt]
+	Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On到Off的完整语义设置
+	的辅助位置\\
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
+	\caption{基本中断模板：变迁 }
+	\label{tab:basic_intr_mov}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
+	{\heiti 更新} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{6}{c}{续表~\thetable\hskip1em 基本中断模板：变迁}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
+	{\heiti 更新} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{6}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & Acknowledge & & 接收到中断信号 & ISR对应位置位，时钟清零 & 中断控
+	制器接收到中断信号\\
+	\midrule[0.5pt]
+	Acknowledge & Wait & 本中断优先级不是最高 & & & 当前有更高优先级的中断存
+	在，本中断等待\\
+	\midrule[0.5pt]
+	Wait & Auxiliary1 & 本中断优先级最高 & 接收到resume信号 & &  高优先级的
+	中断执行完毕，本中断得到CPU\\
+	\midrule[0.5pt]
+	Acknowledge & Auxiliary1 & 本中断优先级最高 & & & 本中断优先级最高，准备
+	执行\\
+	\midrule[0.5pt]
+	Auxiliary1 & On & & 发送prompt信号 & & 当前中断获得CPU，打断其他正在被处
+	理的中断\\
+	\midrule[0.5pt]
+	On & Suspend & & 接收到prompt信号 & & 当前中断被更高优先级的中断打断\\
+	\midrule[0.5pt]
+	Suspend & On & 本中断优先级最高 & 接收到resume信号 & & 高优先级的中断执
+	行完毕，本中断得到CPU\\
+	\midrule[0.5pt]
+	On & Auxiliary2 & 中断实际处理时间$t$超过中断处理时间$T$ & & ISR对应位
+	复位 & 中断执行结束\\
+	\midrule[0.5pt]
+	Auxiliary2 & Off & & 发送resume信号 & 时钟清零 & 通知其他中断获取CPU\\
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+\subsubsection{环境模板}
+\label{subsubsec:basic_env}
+
+环境实例的作用是提供一个中断触发源。在本模型中，由于没有其他的规定，中断的触发方
+式为随机触发。如图~\ref{fig:evn_basic} 所示，环境模板只有一个位置，无实际意义，
+其存在是为了在变迁中随机向intr[0]至intr[N-1]的信道中发送一个信号。
+
+\begin{figure}[H]
 	\centering
-	\caption{基本中断：参数}
-	\label{tab:basic_intr_para} 
-	\begin{tabular*}{\linewidth}{p{7em}p{5em}l}
-		\toprule[1.5pt]
-		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
-		\midrule[1pt]
-		id & int & 中断号，也是中断优先级 \\
-		exeTime & int & 中断处理时间$T$ \\
-		\bottomrule[1.5pt]
-	\end{tabular*}
-\end{table}
+	\includegraphics[width=0.2\textwidth]{env_basic}
+	\caption{基本中断:环境}
+	\label{fig:evn_basic}
+\end{figure}
+
+\subsubsection{模型声明}
 
 \section{带重入的中断模型}
 \label{sec:reentrant}
