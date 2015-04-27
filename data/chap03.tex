@@ -35,7 +35,7 @@
 
 \begin{figure}[H]
 	\centering
-	\input{figure/thread_states}
+	\includegraphics[width=0.5\textwidth]{thread_states}
 	\caption{单个线程的状态}
 	\label{fig:thread_state}
 \end{figure}
@@ -56,7 +56,7 @@
 
 \begin{figure}[H]
 	\centering
-	\input{figure/interrupt_states}
+	\includegraphics[width=0.5\textwidth]{interrupt_states}
 	\caption{单个的状态}
 	\label{fig:interrupt_state}
 \end{figure}
@@ -78,7 +78,7 @@
 
 \begin{figure}
 	\centering
-	\input{figure/thread_table}
+	\includegraphics[width=0.6\textwidth]{thread_table}
 	\caption{线程表}
 	\label{fig:thread_table}
 \end{figure}
@@ -95,7 +95,7 @@
 
 \begin{figure}[H]
 	\centering
-	\input{figure/interrupt_vector_table}
+	\includegraphics[width=0.25\textwidth]{interrupt_vector_table}
 	\caption{中断向量表}
 	\label{fig:interrupt_vector_table}
 \end{figure}
@@ -282,6 +282,20 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 	\centering
 	\caption{基本中断：参数}
 	\label{tab:basic_intr_para}
+	\begin{tabular*}{\linewidth}{p{7em}p{5em}l}
+		\toprule[1.5pt]
+		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
+		\midrule[1pt]
+		id & int & 中断号，也是中断优先级 \\
+		exeTime & int & 中断处理时间$T$ \\
+		\bottomrule[1.5pt]
+	\end{tabular*}
+\end{table}
+
+\begin{table}[htb]
+	\centering
+	\caption{基本中断：参数}
+	\label{tab:basic_intr_para} 
 	\begin{tabular*}{\linewidth}{p{7em}p{5em}l}
 		\toprule[1.5pt]
 		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
