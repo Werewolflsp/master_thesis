@@ -572,14 +572,133 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 
 \subsubsection{重入中断模板}
 \label{subsubsec:reentrant_intr}
+重入中断模板在构建的总体思路上还是遵照了图~\ref{fig:thread_state} ，但是在细节上，
+尤其是运行状态，重入中断模板做了很大的扩充以支持重入这一特性。重入中断的状态机如图
+~\ref{fig:Interrupt_reentrant} 所示，表示运行的位置由一个变成了三个。这是因为在
+这个模型中重入次数上限$M$的取值为3。如果$M==4$，那么就需要第四个运行位置。即，$M$
+决定了代表运行的位置数。这么做的原因是Uppaal限制了迁移的Guard中，有关时钟的语义范
+围，且当重入次数发生改变时，无法用纯静态的循环表达式表达出限制要求。这样添加位置数
+的做法使得状态机不够简洁，不过这是我目前能够想到得最合理的建模方式。
 
+除了位置的数量以外，模板内部的声明和状态机上的其他细节也发生了很多变化，为了行文方
+便，在此还是依次列出完整的模板声明，参数，位置和变迁，分别见表
+~\ref{tab:reentrant_intr_decl} ，表~\ref{tab:reentrant_intr_para}，
+表~\ref{tab:basic_intr_loc}，表~\ref{tab:basic_intr_mov} 。注意，在
+表~\ref{tab:reentrant_intr_decl}提到的函数的定义如图~\ref{fig:initClock} 所示。
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\textwidth]{Interrupt_reentrant}
+	\includegraphics[width=\textwidth]{Interrupt_reentry}
 	\caption{重入中断:状态机}
 	\label{fig:Interrupt_reentrant}
 \end{figure}
+
+\begin{table}[htb]
+	\centering
+	\caption{重入中断模板：内部声明}
+	\label{tab:reentrant_intr_decl}
+	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
+		\toprule[1.5pt]
+		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
+		\midrule[1pt]
+		intTime[M] & clock数组 & 对应每个重入中断实例的中断实际处理时间$t$ \\
+		\midrule[0.5pt]
+		timeSinceStart[M] & clock数组 & 对应每个重入中断实例的中断响应耗时$T^\prime$ \\
+		\midrule[0.5pt]
+		initClock & 无返回值的函数 & 将所有时钟清零 \\
+		\bottomrule[1.5pt]
+	\end{tabularx}
+\end{table}
+
+%\begin{longtabu} to \linewidth {p{7em}p{5em}X}
+%	\caption{重入中断模板：内部声明}
+%	\label{tab:reentrant_intr_decl}\\
+%	\toprule[1.5pt]
+%	{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
+%	\midrule[1pt]
+%	\endfirsthead
+%	\multicolumn{3}{c}{续表~\thetable\hskip1em 重入中断模板：内部声明}\\
+%	\toprule[1.5pt]
+%	{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
+%	\midrule[1pt]
+%	\endhead
+%	\hline
+%	\multicolumn{3}{r}{续下页}
+%	\endfoot
+%	\endlastfoot
+%	intTime[$M$] & clock数组 & 对应每个重入中断实例的中断实际处理时间$t$ \\
+%	\midrule[0.5pt]
+%	timeSinceStart[$M$] & clock数组 & 对应每个重入中断实例的中断响应耗时$T^\prime$ \\
+%	\midrule[0.5pt]
+%	initClock & 无返回值的函数 & 将所有时钟清零 \\
+%	\bottomrule[1.5pt]
+%\end{longtabu}
+
+\begin{figure}[H]
+	\centering
+	\begin{lstlisting}
+	void initClock(){
+		meta int i;
+		for(i = 0; i < M; i++){
+			intTime[i] = 0;
+			timeSinceStart[i] = 0;
+		}
+	}
+	\end{lstlisting}
+	\caption{initClock函数定义}
+	\label{fig:initClock}
+\end{figure}
+
+\begin{table}[htb]
+	\centering
+	\caption{重入中断模板：参数}
+	\label{tab:reentrant_intr_para}
+	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
+		\toprule[1.5pt]
+		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
+		\midrule[1pt]
+		id & int & 中断号，也是中断优先级 \\
+		\midrule[0.5pt]
+		exeTime & int & 中断处理时间$T$ \\
+		\bottomrule[1.5pt]
+	\end{tabularx}
+\end{table}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
+	\caption{重入中断模板：位置}
+	\label{tab:reentrant_intr_loc}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{4}{c}{续表~\thetable\hskip1em 重入中断模板：位置}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{4}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & 初始位置 & intTime和timeSinceStart保持静止，ISR对应位为false & 
+	初始位置，当前没有该中断\\
+	\midrule[0.5pt]
+	Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
+	\midrule[0.5pt]
+	Wait & & intTime保持静止，ISR对应位为true & 当前有优先级更高的中断在运
+	行，本中断等待。\\
+	\midrule[0.5pt]
+	Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
+	的语义设置的辅助位置\\
+	\midrule[0.5pt]
+	On & & intTime不超过exeTime，ISR对应位为true & 中断正在被处理 \\
+	\midrule[0.5pt]
+	Suspend & & intTime静止，ISR对应位为true & 中断被更高优先级抢占CPU \\ 
+	\midrule[0.5pt]
+	Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On到Off的完整语义设置
+	的辅助位置\\
+	\bottomrule[1.5pt]
+\end{longtabu}
 
 \section{分段中断模型}
 \label{sec:segment}
