@@ -517,7 +517,7 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 
 如果我们从栈（Stack）的角度来看中断重入，会发现重入与非重入的抢占在栈的行为上是完
 全一致。在~\ref{subsec:basic_hardware} 小节中我们描述了中断抢占发生时上下文会被
-压栈。重入时栈上的行为与~\ref{fig:stack} 完全一致。由此可见，重入的次数没有任何
+压栈。重入时栈上的行为与图~\ref{fig:stack} 完全一致。由此可见，重入的次数没有任何
 理论上的限制。在真实的硬件平台上，因为栈溢出是不允许的，重入的次数受栈大小的限制，
 然而这也是中断嵌套的层数限制，本质上与中断是否重入没有关系。
 
@@ -779,8 +779,9 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 \end{longtabu}
 
 在这个模型中，中断重入只有在本中断是当前优先级最高的中断时才会发生。如果本中断的优先级
-较低，那么本中断会处于Wait或者Suspend的位置，中断重入就无法发生。因为一旦发生重入，就
-造成优先级反转，不符合中断系统的设置和硬件的实现。
+较低，那么本中断会处于Wait或者Suspend的位置，中断重入就无法发生。因为一旦发生重入，如
+果在运行的位置，就会造成优先级反转；如果在Wait或者Suspend位置，就会发生某个中断的多个
+实例在等待。这两者都不符合中断系统的设置和硬件的实现。
 
 \subsubsection{环境模板}
 \label{subsubsec:reentrant_env}
@@ -788,8 +789,8 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 
 \subsubsection{模型声明}
 \label{subsubsec:reentrant_model_decl}
-模型声明与~\ref{subsubsec:basic_model_decl} 小节中描述的基本相似，见图
-~\ref{fig:reentrant_model_decl}。
+模型声明与~\ref{subsubsec:basic_model_decl} 小节中描述的基本相似，见
+图~\ref{fig:reentrant_model_decl} 。
 
 \begin{figure}[H]
 	\centering
@@ -811,12 +812,92 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 	\label{fig:reentrant_model_decl}
 \end{figure}
 
-
 \section{分段中断模型}
 \label{sec:segment}
+
+在~\ref{subsec:intr_OS} 小节中，我们已经提到了分段中断。如图~\ref{fig:ecos_intr_exec} 所
+示的中断正是分段中断。此类中断多见于嵌入式应用场景。分段中断的出现从嵌入式开发
+的角度来讲，极大地方便了应用的开发，可以在不牺牲实时性的同时让中断完成更繁重的任务。
+这一点在开发中断驱动程序（Interrupt-driven Program）的时候极为重要。中断驱动程序
+的主要功能都是在中断中完成。如果功能比较复杂或者牵涉到与其他硬件的交互，不可避免地，
+中断处理时间会比较长。在没有分段处理的情况下，低优先级的中断的响应时间将大为增加，
+实时性无法保证。
+
+另一方面，分段中断对程序分析和验证带来了很大的困难。中断原本的不确定性就足以使任何
+针对中断程序的验证，尤其是形式化验证的工作量和难度接近或者超出现有工具和人力的极限。
+如果中断程序可以分段，且两段程序在执行上还有一些不同（例如优先级不同），那么分析的
+难度将呈指数级增长。幸运的是，如果只着眼于实时性分析，在中断分段以后两段间只有优先
+级不同的情况下，我们还是可以用近似的方法去建模和验证的。
 
 \subsection{软件的二次实现}
 \label{subsec:segment_software}
 
+在~\ref{subsec:intr_OS} 小节中，我们提到了分段中断是操作系统系统的二次实现。这也
+是为了实现实时性需求嵌入式开发程序员在硬件平台不支持分段中断的情况下做出的机智创作。
+市面上多家实时操作系统提供了分段中断的机制。在此我会着重介绍eCos操作系统的分段中断
+机制。详细了解过操作系统的实现之后，经过适当的抽象，我们可以在Uppaal内对分段中断构
+建自动机模型。
+
+eCos是一个跨平台的操作系统，支持各类CPU和板载中断控制器。不同平台对应的汇编代码并
+不一样，在此我仅以ARM提供的Cortex M系列CPU为硬件平台讲解eCos的分段中断机制。
+
+\subsubsection{Cortex M系列CPU的中断机制}
+\label{subsubsec:cortex_m}
+
+Cortex M系列CPU采用ARMv7-M体系结构，该体系结构针对移动平台设计，在能耗上相当好的
+控制。在中断\footnote{在ARMv7-M Architecture Reference Manual中，ARM称本文所说
+的中断为异常（Exception），其中，0-15号异常为预定义好的，其处理程序也已固化在硬件
+上，16号以后的异常被称为中断（Interrupt）。这只是术语的不同，为了防止混淆，在本文
+中统称中断（Interrupt）。}控制机制上，ARMv7-M体系结构与~\ref{subsec:basic_hardware} 小
+节所述类似，也采用在栈上保存上下文，进入中断处理之后结束再恢复上下文。但是细节上有
+很多ARM平台特有的细节，我会尽量简单的描述这些细节，以便读者能够更好地理
+解~\ref{subsubsec:ecos_intr} 小节中的内容。
+
+ARMv7-M体系结构包含13个通用寄存器，R0-R12，以及3个额外的特殊寄存器。
+
+\begin{description}
+	\item[SP] 栈指针，用来指示当前活跃的栈的顶部内存位置。SP有时也被称为
+	R13。
+	\item[LR] 链接寄存器，用来保存返回链接。返回链接是指进行了一次带返回
+	的跳转指令的返回地址，通常是跳转指令的下一条指令。该寄存器的复位值为0xFFFFFFFF，
+	使用该值进行跳转返回会触发一个错误。LR寄存器在进入中断时也会更新，我们会在下
+	文描述。LR有时也被称为R14。
+	\item[PC] 程序计数器。PC有时也被称为R15。
+\end{description}
+
+在ARMv7-M体系结构中，内存中同时存在两个栈空间\pozhehao 线程栈和主栈，线程栈属于
+当前线程，主栈则是所有程序共用。尽管每个线程都有一个自己的线程栈，但是SP所指向的
+线程栈是当前线程栈，因此不会发生混淆。CPU内有两个特殊寄存器。
+
+\begin{description}
+	\item[PSP] 线程栈指针，永远指向当前线程栈的栈顶。
+	\item[MSP] 主栈指针，永远指向主栈栈顶。
+\end{description}
+
+SP的读取值可以是PSP的值也可以是MSP的值，即PS可以指向当前线程栈栈顶也可以指向主栈
+栈顶，这取决于专用CONTROL寄存器的SPSEL位（即第1位）的当前值。如果为CONTROL.SPSEL
+的值为0，SP指向主栈栈顶；如果CONTROL.SPSEL的值为1，SP指向线程栈栈顶。CPU有线程模
+式（Thread Mode）和处理模式（Handler Mode），在线程模式下，CONTROL.SPSEL的取值
+可以是0或1；在处理模式下，CONTROL.SPSEL的读取值永远为0。换句话说，在线程模式下，
+SP可以指向线程栈或主栈，但是在处理模式下，SP永远指向主栈。
+
+\subsubsection{eCos的分段中断机制} 
+\label{subsubsec:ecos_intr}
+
 \subsection{Uppaal中的分段中断模型}
 \label{subsec:segment_uppaal}
+
+\subsubsection{声明}
+\label{subsubsec:segment_decl}
+
+\subsubsection{分段中断模板}
+\label{subsubsec:segment_intr}
+
+\subsubsection{环境模板}
+\label{subsubsec:segment_env}
+
+\subsubsection{模型声明}
+\label{subsubsec:segment_model_decl}
+
+\section{本章小结}
+\label{sec:sum_3}
