@@ -865,7 +865,8 @@ ARMv7-M体系结构包含13个通用寄存器，R0-R12，以及3个额外的特�
 	\item[PC] 程序计数器。PC有时也被称为R15。
 \end{description}
 
-在ARMv7-M体系结构中，内存中同时存在两个栈空间\pozhehao 线程栈和主栈，线程栈属于
+在ARMv7-M体系结构中，内存中同时存在两个栈空间\pozhehao 线程栈\footnote{准确的译
+名应为进程栈（Process Stack，在此为行文方便，不区分进程和线程。}和主栈，线程栈属于
 当前线程，主栈则是所有程序共用。尽管每个线程都有一个自己的线程栈，但是SP所指向的
 线程栈是当前线程栈，因此不会发生混淆。CPU内有两个特殊寄存器。
 
@@ -879,7 +880,60 @@ SP的读取值可以是PSP的值也可以是MSP的值，即PS可以指向当前�
 的值为0，SP指向主栈栈顶；如果CONTROL.SPSEL的值为1，SP指向线程栈栈顶。CPU有线程模
 式（Thread Mode）和处理模式（Handler Mode），在线程模式下，CONTROL.SPSEL的取值
 可以是0或1；在处理模式下，CONTROL.SPSEL的读取值永远为0。换句话说，在线程模式下，
-SP可以指向线程栈或主栈，但是在处理模式下，SP永远指向主栈。
+SP可以指向线程栈或主栈，但是在处理模式下，SP永远指向主栈。CPU在接收中断时会进入处
+理模式。
+
+在CPU接收到中断信号的，它会将8个32为寄存器压栈，包括xPSR寄存器，返回地址，LR，R12,
+R3，R2，R1和R0。这与CPU在执行函数调用时遵守的ARM Architecture Procedure Calling
+Standard(AAPCS)保持一致。在进入中断时，LR会被写入一个特殊的值\textbf{EXC\_RETURN}。
+因为返回地址和LR原本的值都已经被压栈保存起来，因此LR在中断处理时空闲出来。中断处理
+时，返回的标志就是向PC寄存器中写入EXC\_RETURN。一般情况下，写入的EXC\_RETURN就是
+LR中保存的值，也可以是从其他途径得到的值。EXC\_RETURN的取值固定且分别具有不同的含
+义，如表~\ref{tab:exe_return_noFP} 和表~\ref{tab:exe_return_FP} 所示。在
+表~\ref{tab:exe_return_FP} 中的帧类型是指浮点数扩展模式下触发中断时压入栈的寄存器
+构成的帧类型。有无浮点数支持，上述8个寄存器都会被压栈，且接下来的分析也只需要用到
+它们，因此浮点数的模式在此不做单独讨论。\cite{ARM} 
+
+\begin{table}[htb]
+	\centering
+	\caption{EXC\_RETURN定义的中断返回行为，无浮点扩展}
+	\label{tab:exe_return_noFP}
+	\begin{tabularx}{\linewidth}{XXX}
+		\toprule[1.5pt]
+		{\heiti EXC\_RETURN} & {\heiti 返回到模式} & {\heiti 返回到栈}\\
+		\midrule[1pt]
+		0xFFFFFFF1 & 处理模式 & 主栈 \\
+		\midrule[0.5pt]
+		0xFFFFFFF9 & 线程模式 & 主栈 \\
+		\midrule[0.5pt]
+		0xFFFFFFFD & 线程模式 & 线程栈 \\
+		\bottomrule[1.5pt]
+	\end{tabularx}
+\end{table}
+
+\begin{table}[htb]
+	\centering
+	\caption{EXC\_RETURN定义的中断返回行为，有浮点扩展}
+	\label{tab:exe_return_FP}
+	\begin{tabularx}{\linewidth}{XXXX}
+		\toprule[1.5pt]
+		{\heiti EXC\_RETURN} & {\heiti 返回到模式} & {\heiti 返回到栈} &
+		{\heiti 帧类型}\\
+		\midrule[1pt]
+		0xFFFFFFE1 & 处理模式 & 主栈 & 扩展\\
+		\midrule[0.5pt]
+		0xFFFFFFE9 & 线程模式 & 主栈 & 扩展\\
+		\midrule[0.5pt]
+		0xFFFFFFED & 线程模式 & 线程栈 & 扩展\\
+		\midrule[0.5pt]
+		0xFFFFFFF1 & 处理模式 & 主栈 & 基本\\
+		\midrule[0.5pt]
+		0xFFFFFFF9 & 线程模式 & 主栈 & 基本\\
+		\midrule[0.5pt]
+		0xFFFFFFFD & 线程模式 & 线程栈 & 基本\\
+		\bottomrule[1.5pt]
+	\end{tabularx}
+\end{table}
 
 \subsubsection{eCos的分段中断机制} 
 \label{subsubsec:ecos_intr}
