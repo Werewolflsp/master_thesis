@@ -938,6 +938,36 @@ LR中保存的值，也可以是从其他途径得到的值。EXC\_RETURN的取�
 \subsubsection{eCos的分段中断机制} 
 \label{subsubsec:ecos_intr}
 
+eCos提供一个分段中断机制。应用程序在注册中断时，可以提供两段程序，分别称为ISR（Immediate
+Service Routine）\footnote{注意与本文其他章节里的中断服务寄存器ISR区分，在本小节中涉及的
+的所有ISR均指代Immediate Service Routine。}和DSR（Delayed Service Routine）。其中，ISR
+在中断触发之后立即被执行的（如果优先级满足条件的话），DSR则会被推迟执行，所有DSR的优先级
+低于一切ISR，所有DSR之间的优先级是同等的。\cite{ecos_isr}经过对eCos代码的研读分析，如果
+在中断触发时，ISR执行完之后，DSR因故未能执行，那么所有的DSR会在下一次线程切换时全部执行完
+毕。这样的好处是显而易见的。应用程序将必须立即处理的不涉及共享资源或者运行时间比较短的部分
+放在ISR中处理，把剩下的部分放在DSR里，既充分利用的中断的便利，又不牺牲程序的实时性性能。
+\footnote{值得一提的是，应用程序并没有选择使用传统的一段式中断的自由。在逻辑上，程序员只能
+把所有中断代码放在ISR中，并提交一个空的DSR来完成传统的一段式中断的行为。此时，操作系统在此
+因为DSR的处理反而会消耗相比传统一段式中断更多的CPU周期。}
+
+经过对eCos内核和针对Cortex M系列CPU的HAL（Hardware Abstract Layer, 硬件抽象层）代码的
+仔细研读，我们将eCos操作系统的分段中断流程整理成图~\ref{fig:ecos_isr_dsr} 和
+图~\ref{fig:ecos_stack} 。下面我们按照图示详细剖析一遍。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{ecos_isr_dsr}
+	\caption{eCos分段中断图解}
+	\label{fig:ecos_isr_dsr}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{ecos_stack}
+	\caption{eCos分段中断栈情况一览}
+	\label{fig:ecos_stack}
+\end{figure}
+
 \subsection{Uppaal中的分段中断模型}
 \label{subsec:segment_uppaal}
 
