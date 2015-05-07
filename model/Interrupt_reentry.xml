@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_1.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+const int N = 7;
+const int M = 3;
+
+typedef int[0, N-1] intr_id; 
+typedef int[0, M-1] clock_id;
+chan intr[intr_id];
+urgent broadcast chan prompt, resume;
+
+bool ISR[intr_id] = {false, false,false,false,false,false,false};
+
+typedef int[0,N] Pri;
+Pri get_highest_pri(){
+    meta int i;
+    for(i = 0; i &lt; N; i++){
+        if(ISR[i]){
+            return i;
+        } 
+    }
+    return N;
+}</declaration>
+	<template>
+		<name x="5" y="5">Interrupt_reentry</name>
+		<parameter>int id, int exeTime</parameter>
+		<declaration>clock_id current = 0;
+clock intTime[M], timeSinceStart[M];
+
+//将所有时钟清零
+void initClock(){
+    meta int i;
+    for(i = 0; i &lt; M; i++){
+        intTime[i] = 0;
+        timeSinceStart[i] = 0;
+    }
+}
+</declaration>
+		<location id="id0" x="0" y="51">
+			<name x="17" y="26">On_3</name>
+			<label kind="invariant" x="-42" y="-84">current == 2 &amp;&amp;
+intTime[2] &lt;= exeTime &amp;&amp;
+intTime[0]' == 0 &amp;&amp;
+intTime[1]' == 0 &amp;&amp; 
+ISR[id] == true</label>
+		</location>
+		<location id="id1" x="-76" y="-195">
+			<name x="-86" y="-229">On_2</name>
+			<label kind="invariant" x="-42" y="-254">current == 1 &amp;&amp;
+intTime[1] &lt;= exeTime &amp;&amp;
+intTime[0]' == 0 &amp;&amp;
+intTime[2]' == 0 &amp;&amp; 
+ISR[id] == true</label>
+		</location>
+		<location id="id2" x="-433" y="-383">
+			<name x="-459" y="-366">Auxiliary1</name>
+			<label kind="invariant" x="-476" y="-349">ISR[id] == true</label>
+			<committed/>
+		</location>
+		<location id="id3" x="-433" y="-586">
+			<name x="-443" y="-620">Wait</name>
+			<label kind="invariant" x="-484" y="-663">forall(i : clock_id) intTime[i]' == 0  &amp;&amp;
+ISR[id] == true</label>
+		</location>
+		<location id="id4" x="-254" y="-586">
+			<name x="-280" y="-620">Acknowledge</name>
+			<label kind="invariant" x="-280" y="-637">ISR[id] == true</label>
+			<committed/>
+		</location>
+		<location id="id5" x="25" y="-383">
+			<name x="17" y="-366">Auxiliary2</name>
+			<label kind="invariant" x="8" y="-340">ISR[id] == false</label>
+			<committed/>
+		</location>
+		<location id="id6" x="-433" y="34">
+			<name x="-459" y="51">Suspend</name>
+			<label kind="invariant" x="-484" y="93">ISR[id] == true &amp;&amp;
+forall(i : clock_id) intTime[i]' == 0</label>
+		</location>
+		<location id="id7" x="-255" y="-382">
+			<name x="-289" y="-416">On_1</name>
+			<label kind="invariant" x="-238" y="-485">current == 0 &amp;&amp;
+intTime[0] &lt;= exeTime &amp;&amp;
+intTime[1]' == 0 &amp;&amp;
+intTime[2]' == 0 &amp;&amp; 
+ISR[id] == true</label>
+		</location>
+		<location id="id8" x="25" y="-586">
+			<name x="42" y="-595">Off</name>
+			<label kind="invariant" x="-153" y="-654">forall(i : clock_id) intTime[i]' == 0 &amp;&amp;
+forall(i : clock_id) timeSinceStart[i]' == 0 &amp;&amp;
+ISR[id] == 0</label>
+		</location>
+		<init ref="id8"/>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-238" y="136">current == 2 &amp;&amp;
+get_highest_pri() == id</label>
+			<label kind="synchronisation" x="-314" y="136">resume?</label>
+			<nail x="-238" y="136"/>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="-272" y="60">prompt?</label>
+			<nail x="-238" y="93"/>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-365" y="-17">current == 1 &amp;&amp;
+get_highest_pri() == id</label>
+			<label kind="synchronisation" x="-297" y="-33">resume?</label>
+			<nail x="-229" y="34"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="-255" y="-136">prompt?</label>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-204" y="26">intTime[2] &gt;= exeTime</label>
+			<label kind="assignment" x="-187" y="-8">current--,
+intTime[2] = 0</label>
+			<nail x="-221" y="51"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-246" y="-195">intTime[1] &gt;= exeTime</label>
+			<label kind="assignment" x="-221" y="-237">current--,
+intTime[1] = 0</label>
+			<nail x="-238" y="-195"/>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="-26" y="136">intr[id]?</label>
+			<nail x="-51" y="127"/>
+			<nail x="51" y="127"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="-127" y="-67">intr[id]?</label>
+			<label kind="assignment" x="-143" y="-29">current++</label>
+			<nail x="-76" y="-8"/>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="-501" y="-33">intr[id]?</label>
+			<nail x="-476" y="59"/>
+			<nail x="-476" y="0"/>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-127" y="-272">intr[id]?</label>
+			<label kind="assignment" x="-136" y="-289">current++</label>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id3"/>
+			<label kind="synchronisation" x="-484" y="-561">intr[id]?</label>
+			<nail x="-467" y="-603"/>
+			<nail x="-467" y="-561"/>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id7"/>
+			<label kind="synchronisation" x="-374" y="-383">prompt!</label>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-408" y="-578">get_highest_pri() &lt; id</label>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-425" y="-535">get_highest_pri() == id</label>
+			<label kind="synchronisation" x="-425" y="-510">resume?</label>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-246" y="-535">get_highest_pri() == id</label>
+			<nail x="-255" y="-501"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="-187" y="-578">intr[id]?</label>
+			<label kind="assignment" x="-127" y="-586">ISR[id] = true,
+initClock()</label>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="-34" y="-518">resume!</label>
+			<label kind="assignment" x="-42" y="-501">initClock()</label>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-119" y="-408">intTime[0] &gt;= exeTime</label>
+			<label kind="assignment" x="-110" y="-374">ISR[id] = false</label>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="-425" y="-178">prompt?</label>
+			<nail x="-433" y="-254"/>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-408" y="-238">current == 0 &amp;&amp;
+get_highest_pri() == id</label>
+			<label kind="synchronisation" x="-314" y="-255">resume?</label>
+			<nail x="-255" y="-153"/>
+		</transition>
+	</template>
+	<template>
+		<name>env_reentry</name>
+		<location id="id9" x="0" y="0">
+			<name x="-25" y="17">Nothing</name>
+		</location>
+		<init ref="id9"/>
+		<transition>
+			<source ref="id9"/>
+			<target ref="id9"/>
+			<label kind="select" x="-34" y="-170">i:int[0, N-1]</label>
+			<label kind="synchronisation" x="-16" y="-123">intr[i]!</label>
+			<nail x="-68" y="-136"/>
+			<nail x="68" y="-136"/>
+		</transition>
+	</template>
+	<system>intr0 = Interrupt_reentry(0, 1000);
+intr1 = Interrupt_reentry(1, 500);
+intr2 = Interrupt_reentry(2, 500);
+intr3 = Interrupt_reentry(3, 600);
+intr4 = Interrupt_reentry(4, 700);
+intr5 = Interrupt_reentry(5, 800);
+intr6 = Interrupt_reentry(6, 900);
+
+env = env_reentry();
+
+system intr0, intr1, intr2, intr3, intr4, 
+        intr5, intr6, env;    </system>
+</nta>
