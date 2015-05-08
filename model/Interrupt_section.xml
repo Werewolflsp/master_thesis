@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_1.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+const int N = 7;
+
+typedef int[0, N-1] intr_id; // Also representing the priorities with 0 the highest and N-1 the lowest
+chan intr[intr_id];
+urgent broadcast chan prompt, resume;
+
+bool ISR[intr_id] = {false, false,false,false,false,false,false};
+
+typedef int[0,N] Pri;
+Pri get_highest_pri(){
+    meta int i;
+    for(i = 0; i &lt; N; i++){
+        if(ISR[i]){
+            return i;
+        } 
+    }
+    return N;
+}</declaration>
+	<template>
+		<name x="5" y="5">Interrupt_section</name>
+		<parameter>int id, int exeTime_i, int exeTime_d </parameter>
+		<declaration>clock intTime, timeSinceStart;
+</declaration>
+		<location id="id0" x="-347" y="-476">
+			<name x="-416" y="-459">Auxiliary2</name>
+			<label kind="invariant" x="-450" y="-442">ISR[id] == false</label>
+			<committed/>
+		</location>
+		<location id="id1" x="-748" y="-280">
+			<name x="-790" y="-263">Suspend_d</name>
+			<label kind="invariant" x="-705" y="-272">intTime' == 0 &amp;&amp;
+ISR[id] == false</label>
+		</location>
+		<location id="id2" x="-280" y="-280">
+			<name x="-314" y="-263">On_d</name>
+			<label kind="invariant" x="-433" y="-238">intTime &lt;= exeTime_d &amp;&amp;
+ISR[id] == false</label>
+		</location>
+		<location id="id3" x="-739" y="-476">
+			<name x="-765" y="-459">Auxiliary1</name>
+			<label kind="invariant" x="-765" y="-442">ISR[id] == true</label>
+			<committed/>
+		</location>
+		<location id="id4" x="-739" y="-790">
+			<name x="-749" y="-824">Wait</name>
+			<label kind="invariant" x="-714" y="-841">intTime' == 0 &amp;&amp;
+ISR[id] == true</label>
+		</location>
+		<location id="id5" x="-560" y="-790">
+			<name x="-586" y="-824">Acknowledge</name>
+			<label kind="invariant" x="-586" y="-841">ISR[id] == true</label>
+			<committed/>
+		</location>
+		<location id="id6" x="-442" y="-629">
+			<name x="-459" y="-603">Suspend_i</name>
+			<label kind="invariant" x="-544" y="-680">intTime' == 0 &amp;&amp;
+ISR[id] == true</label>
+		</location>
+		<location id="id7" x="-569" y="-476">
+			<name x="-603" y="-510">On_i</name>
+			<label kind="invariant" x="-637" y="-459">ISR[id] == true &amp;&amp;
+intTime &lt;= exeTime_i</label>
+		</location>
+		<location id="id8" x="-281" y="-790">
+			<name x="-264" y="-799">Off</name>
+			<label kind="invariant" x="-391" y="-858">intTime' == 0 &amp;&amp; 
+timeSinceStart' == 0 &amp;&amp;
+ISR[id] == false</label>
+		</location>
+		<init ref="id8"/>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-459" y="-399">get_highest_pri() == N</label>
+			<label kind="synchronisation" x="-374" y="-382">resume!</label>
+			<nail x="-314" y="-476"/>
+			<nail x="-314" y="-306"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-799" y="-314">intr[id]?</label>
+			<nail x="-773" y="-297"/>
+			<nail x="-773" y="-263"/>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id2"/>
+			<label kind="synchronisation" x="-272" y="-322">intr[id]?</label>
+			<nail x="-255" y="-297"/>
+			<nail x="-255" y="-263"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-578" y="-280">get_highest_pri() == N</label>
+			<label kind="synchronisation" x="-544" y="-306">resume?</label>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-544" y="-348">prompt?</label>
+			<nail x="-518" y="-323"/>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-731" y="-399">get_highest_pri() &lt; N</label>
+			<label kind="synchronisation" x="-731" y="-382">resume!</label>
+			<nail x="-348" y="-408"/>
+			<nail x="-748" y="-408"/>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id8"/>
+			<label kind="guard" x="-416" y="-713">intTime &gt;= exeTime_i</label>
+			<label kind="assignment" x="-416" y="-688">timeSinceStart = 0,
+intTime = 0</label>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="-382" y="-637">intr[id]?</label>
+			<nail x="-391" y="-637"/>
+			<nail x="-391" y="-612"/>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id7"/>
+			<label kind="synchronisation" x="-527" y="-527">intr[id]?</label>
+			<nail x="-527" y="-501"/>
+			<nail x="-476" y="-501"/>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="-790" y="-765">intr[id]?</label>
+			<nail x="-773" y="-807"/>
+			<nail x="-773" y="-765"/>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id7"/>
+			<label kind="synchronisation" x="-688" y="-510">prompt!</label>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id4"/>
+			<label kind="guard" x="-714" y="-782">get_highest_pri() &lt; id</label>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-731" y="-722">get_highest_pri() == id</label>
+			<label kind="synchronisation" x="-731" y="-697">resume?</label>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-552" y="-731">get_highest_pri() == id</label>
+			<nail x="-561" y="-680"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id5"/>
+			<label kind="synchronisation" x="-493" y="-782">intr[id]?</label>
+			<label kind="assignment" x="-433" y="-790">ISR[id] = true,
+timeSinceStart = 0,
+intTime = 0</label>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-510" y="-476">intTime &gt;= exeTime_i</label>
+			<label kind="assignment" x="-459" y="-518">ISR[id] = false,
+intTime = 0</label>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="-561" y="-620">prompt?</label>
+			<nail x="-569" y="-629"/>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-493" y="-561">get_highest_pri() == id</label>
+			<label kind="synchronisation" x="-476" y="-578">resume?</label>
+		</transition>
+	</template>
+	<template>
+		<name>env_section</name>
+		<location id="id9" x="0" y="0">
+			<name x="-25" y="17">Nothing</name>
+		</location>
+		<init ref="id9"/>
+		<transition>
+			<source ref="id9"/>
+			<target ref="id9"/>
+			<label kind="select" x="-34" y="-170">i:int[0, N-1]</label>
+			<label kind="synchronisation" x="-16" y="-123">intr[i]!</label>
+			<nail x="-68" y="-136"/>
+			<nail x="68" y="-136"/>
+		</transition>
+	</template>
+	<system>intr0 = Interrupt_section(0, 1000, 5000);
+intr1 = Interrupt_section(1, 500, 5000);
+intr2 = Interrupt_section(2, 500, 5000);
+intr3 = Interrupt_section(3, 500, 5000);
+intr4 = Interrupt_section(4, 700, 5000);
+intr5 = Interrupt_section(5, 800, 5000);
+intr6 = Interrupt_section(6, 900, 5000);
+
+env = env_section();
+
+system intr0, intr1, intr2, intr3, intr4, intr5, intr6, env;    </system>
+</nta>

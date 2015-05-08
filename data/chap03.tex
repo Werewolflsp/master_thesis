@@ -106,13 +106,14 @@
 或外部中断控制器等硬件决定的，实际使用时可能用不到所有的优先级，因此会有大量的中
 断向量表项为空。
 
-除了维数降低，中断向量表相比于线程表而言，还有两个不同点。其一，一般而言，中断向
-量表在系统初始化完成以后就不再变化。这里的变化指的是已有的中断的优先级变化，即已
-有中断在中断向量表中的位置变化。部分操作系统或裸机程序会有在运行时注册或注销中断
-的行为，但是从来没有过更改一个现有中断优先级的行为。换言之，在运行时，中断向量表
-可以增加或删除表项，但不会更改表项。\footnote{这是一条编程准则。事实上，只要有足
-够的权限，更改中断向量表项的操作是被允许的，因而也是可以完成的。只不过大家都不这
-么做。}
+除了维数降低，中断向量表相比于线程表而言，还有两个不同点。
+
+其一，一般而言，中断向量表在系统初始化完成以后就不再变化。这里的变化指的是已有的
+中断的优先级变化，即已有中断在中断向量表中的位置变化。部分操作系统或裸机程序会有
+在运行时注册或注销中断的行为，但是从来没有过更改一个现有中断优先级的行为。换言之，
+在运行时，中断向量表可以增加或删除表项，但不会更改表项。\footnote{这是一条编程
+准则。事实上，只要有足够的权限，更改中断向量表项的操作是被允许的，因而也是可以完
+成的。只不过大家都不这么做。}
 
 其二，中断向量表只有一份，包含了所有的中断，不论其当前状态如何。以线程表而言，系
 统中可能有两份甚至多份线程表，分别记录不同状态下的线程。除了笼统地将阻塞线程做成
@@ -166,6 +167,7 @@
 \label{subsec:basic_uppaal}
 
 在构建中断模型之前，我们首先需要对中断场景做一些必要的简化和抽象，同时辅以合理的
+
 假设，以保证我们最终的问题可解。本文的出发点是多中断相互作用下的中断实时性研究。
 中断处理程序的语义我们并不关心，因此中断处理程序的语义可以被忽略。一个中断处理程
 序就是一个如图~\ref{fig:interrupt_state} 所示的状态机。而另一方面，我们需要中断
@@ -276,15 +278,15 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 处理，那么该函数返回N。优先级N不对应任何一个中断，我们可以认为优先级N对应的是普
 通代码。
 
-\subsubsection{基本中断模板}
-\label{subsubsec:basic_intr}
-
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.9\textwidth]{Interrupt_basic}
 	\caption{基本中断:状态机}
 	\label{fig:interrupt_basic}
 \end{figure}
+
+\subsubsection{基本中断模板}
+\label{subsubsec:basic_intr}
 
 基本中断的状态机如图~\ref{fig:interrupt_basic} 所示，在这个状态机的状态在Uppaal
 中称为位置（Location），以便于整个模型的状态相区分。该模板的内部声明、参数、位置
@@ -384,7 +386,7 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 	\midrule[0.5pt]
 	On & & intTime不超过exeTime，ISR对应位为true & 中断正在被处理 \\
 	\midrule[0.5pt]
-	Suspend & & intTime静止，ISR对应位为true & 中断被更高优先级抢占CPU \\ 
+	Suspend & & intTime静止，ISR对应位为true & 中断被更高优先级的中断抢占CPU \\ 
 	\midrule[0.5pt]
 	Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On到Off的完整语义设置
 	的辅助位置\\
@@ -463,6 +465,11 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 \subsubsection{模型声明}
 \label{subsubsec:basic_model_decl}
 
+在模型声明中我们将声明所有的实例和模型组成。如图~\ref{fig:basic_model_decl} 所示，
+1-7行声明了7个中断实例，注意他们的两个参数，分别对应中断ID和中断处理时间$T$。第9
+行生命了中断源。第11行声明了整个模型。至此，我们可以进行仿真模拟，撰写性质交给验
+证器去验证。
+
 \begin{figure}[H]
 	\centering
 	\begin{lstlisting}
@@ -477,16 +484,11 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 	env_basic = env_basic();
 	
 	system intr0, intr1, intr2, intr3, intr4, 
-			intr5, intr6, env_basic;
+					intr5, intr6, env_basic;
 	\end{lstlisting}
 	\caption{基本中断模型：模型声明}
 	\label{fig:basic_model_decl}
 \end{figure}
-
-在模型声明中我们将声明所有的实例和模型组成。如图~\ref{fig:basic_model_decl} 所示，
-1-7行声明了7个中断实例，注意他们的两个参数，分别对应中断ID和中断处理时间$T$。第9
-行生命了中断源。第11行声明了整个模型。至此，我们可以进行仿真模拟，撰写性质交给验
-证器去验证。
 
 \section{带重入的中断模型}
 \label{sec:reentrant}
@@ -785,12 +787,22 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 
 \subsubsection{环境模板}
 \label{subsubsec:reentrant_env}
-这个模型中的环境模板与~\ref{subsubsec:basic_env} 小节中描述的完全一致，在此不赘述。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.2\textwidth]{env_basic}
+	\caption{重入中断:环境}
+	\label{fig:env_reentrant}
+\end{figure}
+
+这个模型中的环境模板与~\ref{subsubsec:basic_env} 小节中描述的完全一致，如
+图~\ref{fig:env_reentrant} 所示。
 
 \subsubsection{模型声明}
 \label{subsubsec:reentrant_model_decl}
 模型声明与~\ref{subsubsec:basic_model_decl} 小节中描述的基本相似，见
 图~\ref{fig:reentrant_model_decl} 。
+
 
 \begin{figure}[H]
 	\centering
@@ -867,7 +879,7 @@ ARMv7-M体系结构包含13个通用寄存器，R0-R12，以及3个额外的特�
 
 在ARMv7-M体系结构中，内存中同时存在两个栈空间\pozhehao 进程栈和主栈，进程栈
 属于当前线程，主栈则是所有程序共用。尽管每个线程都有一个自己的进程栈，但是SP所指
-向的进程栈是当前进程栈，因此不会发生混淆。CPU内有两个特殊寄存器。
+向的进程栈是当前进程栈。CPU内有两个特殊寄存器。
 
 \begin{description}
 	\item[PSP] 进程栈指针，永远指向当前进程栈的栈顶。
@@ -881,17 +893,6 @@ SP的读取值可以是PSP的值也可以是MSP的值，即PS可以指向当前�
 可以是0或1；在处理模式下，CONTROL.SPSEL的读取值永远为0。换句话说，在线程模式下，
 SP可以指向进程栈或主栈，但是在处理模式下，SP永远指向主栈。CPU在接收中断时会进入处
 理模式。在处理模式中，CPU可以使用psp和msp在汇编代码里直接操作对应的栈。
-
-在CPU接收到中断信号的，它会将8个32为寄存器压栈，包括xPSR寄存器，返回地址，LR，R12,
-R3，R2，R1和R0。这与CPU在执行函数调用时遵守的ARM Architecture Procedure Calling
-Standard(AAPCS)保持一致。在进入中断时，LR会被写入一个特殊的值\textbf{EXC\_RETURN}。
-因为返回地址和LR原本的值都已经被压栈保存起来，因此LR在中断处理时空闲出来。中断处理
-时，返回的标志就是向PC寄存器中写入EXC\_RETURN。一般情况下，写入的EXC\_RETURN就是
-LR中保存的值，也可以是从其他途径得到的值。EXC\_RETURN的取值固定且分别具有不同的含
-义，如表~\ref{tab:exe_return_noFP} 和表~\ref{tab:exe_return_FP} 所示。在
-表~\ref{tab:exe_return_FP} 中的帧类型是指浮点数扩展模式下触发中断时压入栈的寄存器
-构成的帧类型。有无浮点数支持，上述8个寄存器都会被压栈，且接下来的分析也只需要用到
-它们，因此浮点数的模式在此不做单独讨论。\cite{ARM} 
 
 \begin{table}[htb]
 	\centering
@@ -933,6 +934,17 @@ LR中保存的值，也可以是从其他途径得到的值。EXC\_RETURN的取�
 		\bottomrule[1.5pt]
 	\end{tabularx}
 \end{table}
+
+在CPU接收到中断信号的，它会将8个32为寄存器压栈，包括xPSR寄存器，返回地址，LR，R12,
+R3，R2，R1和R0。这与CPU在执行函数调用时遵守的ARM Architecture Procedure Calling
+Standard(AAPCS)保持一致。在进入中断时，LR会被写入一个特殊的值\textbf{EXC\_RETURN}。
+因为返回地址和LR原本的值都已经被压栈保存起来，因此LR在中断处理时空闲出来。中断处理
+时，返回的标志就是向PC寄存器中写入EXC\_RETURN。一般情况下，写入的EXC\_RETURN就是
+LR中保存的值，也可以是从其他途径得到的值。EXC\_RETURN的取值固定且分别具有不同的含
+义，如表~\ref{tab:exe_return_noFP} 和表~\ref{tab:exe_return_FP} 所示。在
+表~\ref{tab:exe_return_FP} 中的帧类型是指浮点数扩展模式下触发中断时压入栈的寄存器
+构成的帧类型。有无浮点数支持，上述8个寄存器都会被压栈，且接下来的分析也只需要用到
+它们，因此浮点数的模式在此不做单独讨论。\cite{ARM} 
 
 \subsubsection{eCos的分段中断机制} 
 \label{subsubsec:ecos_intr}
@@ -1030,13 +1042,101 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 在深入了解分段中断的实现机制之后，我们就可以在Uppaal中构建分段中断的模型。在此之前，我们需要
 做一些抽象和假设。
 
+首先，第一个抽象，我们应该从用户程序的层次来看待中断处理，所以为了完成一个中断而在硬件上进行
+的3次中断触发行为可以被抽象。其次，我们的模型并不考虑多线程的运行环境，且并非所有操作系统在
+实现分段中断时都有线程切换的操作，因此线程切换的操作可以被抽象。最后，所有的硬件和代码描述的
+大部分语义我们都可以抽象，这与我们之前的做的抽象类似。
 
+为了简化问题，以便Uppaal能够清晰准确表达模型的行为，我们还需要做一个假设。假设如下：
+
+\begin{assumption}
+	分段中断不允许重入。
+\end{assumption}
 
 \subsubsection{声明}
 \label{subsubsec:segment_decl}
 
+分段中断模型的声明部分与~\ref{subsubsec:basic_decl} 小节完全相同，不再赘述。
+
 \subsubsection{分段中断模板}
 \label{subsubsec:segment_intr}
+
+分段中断模板的状态机如图~\ref{fig:intr_sec} 所示。该模板的内部声明、参数、位置和变迁的说明
+分别见表~\ref{tab:sec_intr_decl} ，表~\ref{tab:sec_intr_para}，表~\ref{tab:sec_intr_loc}
+和表~\ref{tab:sec_intr_mov} 。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{Interrupt_section}
+	\caption{分段中断：状态机}
+	\label{fig:intr_sec}
+\end{figure}
+
+\begin{table}[htb]
+	\centering
+	\caption{分段中断模板：内部声明}
+	\label{tab:sec_intr_decl}
+	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
+		\toprule[1.5pt]
+		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
+		\midrule[1pt]
+		intTime & clock & 中断实际处理时间$t$ \\
+		\midrule[0.5pt]
+		timeSinceStart & clock & 中断响应耗时$T^\prime$ \\
+		\bottomrule[1.5pt]
+	\end{tabularx}
+\end{table}
+
+\begin{table}[htb]
+	\centering
+	\caption{分段中断模板：参数}
+	\label{tab:sec_intr_para}
+	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
+		\toprule[1.5pt]
+		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
+		\midrule[1pt]
+		id & int & 中断号，也是中断优先级 \\
+		\midrule[0.5pt]
+		exeTime\_i & int & 紧急处理分段的处理时间$T_i$ \\
+		\midrule[0.5pt]
+		exeTime\_d & int & 推迟处理分段的处理时间$T_d$ \\
+		\bottomrule[1.5pt]
+	\end{tabularx}
+\end{table}
+
+\begin{table}[!htb]
+	\centering
+	\caption{分段中断模板：位置}
+	\label{tab:sec_intr_loc}
+	\begin{tabularx}{\linewidth}{p{5em}p{5em}p{13em}X}
+		\toprule[1.5pt]
+		{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+		\midrule[1pt]
+		Off & 初始位置 & intTime和timeSinceStart保持静止，ISR对应位为false & 
+		初始位置，当前没有该中断\\
+		\midrule[0.5pt]
+		Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
+		\midrule[0.5pt]
+		Wait & & intTime保持静止，ISR对应位为true & 当前有优先级更高的中断在运
+		行，本中断等待。\\
+		\midrule[0.5pt]
+		Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
+		的语义设置的辅助位置\\
+		\midrule[0.5pt]
+		On\_i & & intTime不超过exeTime\_i，ISR对应位为true & 中断紧急处理分段正在被处理 \\
+		\midrule[0.5pt]
+		Suspend\_i & & intTime静止，ISR对应位为true & 中断紧急处理分段被更高优先级的中断抢
+		占CPU \\ 
+		\midrule[0.5pt]
+		Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On\_i到和On\_d和Suspend\_d的完整
+		语义设置的辅助位置\\
+		\midrule[0.5pt]
+		On\_d & & intTime不超过exeTime\_d，ISR对应位为false & 中断推迟处理分段正在被处理 \\
+		\midrule[0.5pt]
+		Suspend\_d & & intTime静止，ISR对应位为false & 中断推迟处理分段被抢占CPU \\ 
+		\bottomrule[1.5pt]
+	\end{tabularx}
+\end{table}
 
 \subsubsection{环境模板}
 \label{subsubsec:segment_env}

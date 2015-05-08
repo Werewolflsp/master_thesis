@@ -162,7 +162,7 @@ intr4 = Interrupt_basic(4, 700);
 intr5 = Interrupt_basic(5, 800);
 intr6 = Interrupt_basic(6, 900);
 
-env_basicironment = env_basic();
+env = env_basic();
 
-system intr0, intr1, intr2, intr3, intr4, intr5, intr6, env_basicironment;    </system>
+system intr0, intr1, intr2, intr3, intr4, intr5, intr6, env;    </system>
 </nta>
