@@ -950,17 +950,18 @@ LR中保存的值，也可以是从其他途径得到的值。EXC\_RETURN的取�
 \subsubsection{eCos的分段中断机制} 
 \label{subsubsec:ecos_intr}
 
-eCos提供一个分段中断机制。应用程序在注册中断时，可以提供两段程序，分别称为ISR（Immediate
-Service Routine）\footnote{注意与本文其他章节里的中断服务寄存器ISR区分，在本小节中涉及的
-的所有ISR均指代Immediate Service Routine。}和DSR（Delayed Service Routine）。其中，ISR
-在中断触发之后立即被执行的（如果优先级满足条件的话），DSR则会被推迟执行，所有DSR的优先级
-低于一切ISR，所有DSR之间的优先级是同等的。\cite{ecos_isr}经过对eCos代码的研读分析，如果
-在中断触发时，ISR执行完之后，DSR因故未能执行，那么所有的DSR会在下一次线程切换时全部执行完
-毕。这样的好处是显而易见的。应用程序将必须立即处理的不涉及共享资源或者运行时间比较短的部分
-放在ISR中处理，把剩下的部分放在DSR里，既充分利用的中断的便利，又不牺牲程序的实时性性能。
-\footnote{值得一提的是，应用程序并没有选择使用传统的一段式中断的自由。在逻辑上，程序员只能
-把所有中断代码放在ISR中，并提交一个空的DSR来完成传统的一段式中断的行为。此时，操作系统在此
-因为DSR的处理反而会消耗相比传统一段式中断更多的CPU周期。}
+eCos提供一个分段中断机制。应用程序在注册中断时，可以提供两段程序，分别称为ISR（
+ImmediateService Routine）\footnote{注意与本文其他章节里的中断服务寄存器ISR区分，
+在本小节中涉及的的所有ISR均指代Immediate Service Routine。}和DSR（Delayed Service 
+Routine）。其中，ISR在中断触发之后立即被执行的（如果优先级满足条件的话），DSR则
+会被推迟执行，所有DSR的优先级低于一切ISR，所有DSR之间的优先级是同等的。\cite{ecos_isr}
+经过对eCos代码的研读分析，如果在中断触发时，ISR执行完之后，DSR因故未能执行，那么
+所有的DSR会在下一次线程切换时全部执行完毕。这样的好处是显而易见的。应用程序将必须
+立即处理的不涉及共享资源或者运行时间比较短的部分放在ISR中处理，把剩下的部分放在DSR
+里，既充分利用的中断的便利，又不牺牲程序的实时性性能。\footnote{值得一提的是，应用
+程序并没有选择使用传统的一段式中断的自由。在逻辑上，程序员只能把所有中断代码放在
+ISR中，并提交一个空的DSR来完成传统的一段式中断的行为。此时，操作系统在此因为DSR的
+处理反而会消耗相比传统一段式中断更多的CPU周期。}
 
 %Let them flow
 \begin{figure}
@@ -977,80 +978,86 @@ Service Routine）\footnote{注意与本文其他章节里的中断服务寄存�
 	\label{fig:ecos_stack}
 \end{figure}
 
-经过对eCos内核和针对Cortex M系列CPU的HAL（Hardware Abstract Layer, 硬件抽象层）代码的
-仔细研读，我们将eCos操作系统的分段中断流程整理成图~\ref{fig:ecos_isr_dsr} 。各个标号位置
-的栈情况见图~\ref{fig:ecos_stack} 。下面我们按照图示详细剖析一遍。
+经过对eCos内核和针对Cortex M系列CPU的HAL（Hardware Abstract Layer, 硬件抽象层）
+代码的仔细研读，我们将eCos操作系统的分段中断流程整理成图~\ref{fig:ecos_isr_dsr} 。
+各个标号位置的栈情况见图~\ref{fig:ecos_stack} 。下面我们按照图示详细剖析一遍。
 
-首先，CPU检测到中断信号，打断了当前线程。在位置0，我们可以看到主栈和进程栈同为空\footnote{这
-里忽略检测到中断信号之前的栈内的内容，且不考虑栈溢出的情况。}，且当前活跃栈为进程栈。从位置0到
-位置1，是硬件接收中断的行为，这里最主要的是保存8个32位寄存器（即程序上下文），将lr赋值为
-EXC\_RETURN，将PC定位到中断向量表项，即hal\_default\_interrupt\_vsr的地址，以及
-CONTROL.SPSEL复位，即从位置1开始，活跃栈切换为主栈。位置1之后的汇编代码就属于
-hal\_default\_interrupt\_vsr，首先将lr的值压栈，然后将栈顶指针减4，即让栈涨了一个字，然后
-执行bl指令跳转到hal\_deliver\_interrupt函数，因为bl指令是带返回地址的跳转至零，因此执行bl
-会将返回地址写入lr寄存器中。不过在此之前lr的值已经被压栈了，如位置2的栈情况所示。
-hal\_deliver\_interrupt是一段C++的函数。首先它完成了ISR的功能，接着会检查sched\_lock这
-个变量的值。sched\_lock是定义在eCos系统的内核部分的一个关键变量，该变量指示是否能进行线程调
-度，导致该变量为非0值的可能原因有很多，均需要CPU尽可能快的处理，因此在sched\_lock不为0时，
-DSR就会被延后执行，本次中断处理就准备收尾了。在图图~\ref{fig:ecos_isr_dsr} 中，从位置3'
-开始，位置4'，5'，6'组成了一条退出中断的路径。在汇编代码，即hal\_default\_interrupt\_vsr
-的后半部分，栈顶退回一个字的大小，然后将栈顶的值，即进入hal\_default\_interrupt\_vsr时的
-lr的值，也就是进入中断时存入lr的EXC\_RETURN写入pc寄存器，触发一个退出中断的硬件行为。硬件将
-CONTRL.SPSEL根据EXC\_RETURN恢复为1，然后将保存的上下文恢复。本中断结束。位置6'与位置1的栈
-情况完全相同。
+首先，CPU检测到中断信号，打断了当前线程。在位置0，我们可以看到主栈和进程栈同为
+空\footnote{这里忽略检测到中断信号之前的栈内的内容，且不考虑栈溢出的情况。}，且
+当前活跃栈为进程栈。从位置0到位置1，是硬件接收中断的行为，这里最主要的是保存8个
+32位寄存器（即程序上下文），将lr赋值为EXC\_RETURN，将PC定位到中断向量表项，即
+hal\_default\_interrupt\_vsr的地址，以及CONTROL.SPSEL复位，即从位置1开始，活
+跃栈切换为主栈。位置1之后的汇编代码就属于hal\_default\_interrupt\_vsr，首先将
+lr的值压栈，然后将栈顶指针减4，即让栈涨了一个字，然后执行bl指令跳转到
+hal\_deliver\_interrupt函数，因为bl指令是带返回地址的跳转至零，因此执行bl会将返
+回地址写入lr寄存器中。不过在此之前lr的值已经被压栈了，如位置2的栈情况所示。
+hal\_deliver\_interrupt是一段C++的函数。首先它完成了ISR的功能，接着会检查sched\_lock
+这个变量的值。sched\_lock是定义在eCos系统的内核部分的一个关键变量，该变量指示是
+否能进行线程调度，导致该变量为非0值的可能原因有很多，均需要CPU尽可能快的处理，因
+此在sched\_lock不为0时，DSR就会被延后执行，本次中断处理就准备收尾了。在
+图~\ref{fig:ecos_isr_dsr} 中，从位置3'开始，位置4'，5'，6'组成了一条退出中断的
+路径。在汇编代码，即hal\_default\_interrupt\_vsr的后半部分，栈顶退回一个字的大
+小，然后将栈顶的值，即进入hal\_default\_interrupt\_vsr时的lr的值，也就是进入中
+断时存入lr的EXC\_RETURN写入pc寄存器，触发一个退出中断的硬件行为。硬件将
+CONTRL.SPSEL根据EXC\_RETURN恢复为1，然后将保存的上下文恢复。本中断结束。位置6'
+与位置1的栈情况完全相同。
 
-另一方面，如果sched\_lock为0，eCos会去继续执行dsr。但是此时依然是在中断状态，如果将dsr直接
-放在hal\_deliver\_interrupt里，它的优先级依旧高于其他低优先级的中断，为了使所有中断的优先
-级高于dsr，我们需要在非中断状态执行dsr。接下来所做的复杂工作就是为了去非中断状态执行dsr,然后
-再恢复上下文回到中断触发时的状态。
+另一方面，如果sched\_lock为0，eCos会去继续执行dsr。但是此时依然是在中断状态，如
+果将dsr直接放在hal\_deliver\_interrupt里，它的优先级依旧高于其他低优先级的中断，
+为了使所有中断的优先级高于dsr，我们需要在非中断状态执行dsr。接下来所做的复杂工作
+就是为了去非中断状态执行dsr,然后再恢复上下文回到中断触发时的状态。
 
 在判断sched\_lock为0之后，hal\_deliver\_interrupt将一个特殊的值CYGARC\_REG\_NVIC\_
-ICSR\_PENDSVSET写入icsr寄存器，将中断检测位置位，CPU检测到一个新的中断，引发进入中断的硬件
-行为。注意，这是一个中断嵌套，因为前一个中断尚未退出。类似的，硬件保存上下文，在lr中写入
-EXC\_RETURN，修改pc到中断向量表项。然后就跳转到这个中断的处理程序，即用汇编代码写的
-hal\_pendable\_svc\_vsr过程。在hal\_pendable\_svc\_vsr中，eCos在进程栈里伪造了一个8个字
-的中断帧。然后利用bx指令将lr里的值，也即是EXE\_RETURN写入pc寄存器，从而触发一个硬件的退出
-中断的行为。硬件在位置6恢复了位置3的上下文，包括主栈和对应的寄存器。但是，我们注意到，位置
-6的进程栈里多了伪造的中断帧。
+ICSR\_PENDSVSET写入icsr寄存器，将中断检测位置位，CPU检测到一个新的中断，引发进
+入中断的硬件行为。注意，这是一个中断嵌套，因为前一个中断尚未退出。类似的，硬件保
+存上下文，在lr中写入EXC\_RETURN，修改pc到中断向量表项。然后就跳转到这个中断的处
+理程序，即用汇编代码写的hal\_pendable\_svc\_vsr过程。在hal\_pendable\_svc\_vsr
+中，eCos在进程栈里伪造了一个8个字的中断帧。然后利用bx指令将lr里的值，也即是
+EXE\_RETURN写入pc寄存器，从而触发一个硬件的退出中断的行为。硬件在位置6恢复了位置3
+的上下文，包括主栈和对应的寄存器。但是，我们注意到，位置6的进程栈里多了伪造的中断帧。
 
-从位置7回来之后，hal\_deliver\_interrupt函数就结束了，C++的函数结束时，会从活跃栈中弹出对
-应内容到寄存器里，将栈空间和寄存器都还原到进入函数之前的状态。\cite{AAPCS}接着，CPU继续执行
-汇编过程hal\_default\_interrupt\_vsr的后半部分，主栈栈顶回退，然后出栈，向pc寄存器内写入
-EXC\_RETURN，触发硬件的中断返回操作。在修改CONTROL.SPSEL到达位置9后，活跃栈已经变成进程栈。
-但是此时进程栈中多了伪造的中断帧。于是硬件恢复的上下文就是伪造帧中的上下文，在这个上下文中，
-pc的值是hal\_interrupt\_end的地址，lr的值是hal\_interrupt\_end\_done的地址。于是CPU开始
-执行C++函数hal\_interrupt\_end。在hal\_interrupt\_end中，如果条件允许，所有dsr都会被执行。
-从位置10开始，CPU已经退出中断状态，所以在此执行的dsr可以被任意优先级的中断打断。这就符合了
-分段中断的设计初衷。接下里就是如何回到最初进入中断时的状态的问题了。
+从位置7回来之后，hal\_deliver\_interrupt函数就结束了，C++的函数结束时，会从活跃
+栈中弹出对应内容到寄存器里，将栈空间和寄存器都还原到进入函数之前的状态。\cite{AAPCS}
+接着，CPU继续执行汇编过程hal\_default\_interrupt\_vsr的后半部分，主栈栈顶回退，
+然后出栈，向pc寄存器内写入EXC\_RETURN，触发硬件的中断返回操作。在修改CONTROL.SPSEL
+到达位置9后，活跃栈已经变成进程栈。但是此时进程栈中多了伪造的中断帧。于是硬件恢复
+的上下文就是伪造帧中的上下文，在这个上下文中，pc的值是hal\_interrupt\_end的地址，
+lr的值是hal\_interrupt\_end\_done的地址。于是CPU开始执行C++函数hal\_interrupt\_end。
+在hal\_interrupt\_end中，如果条件允许，所有dsr都会被执行。从位置10开始，CPU已经
+退出中断状态，所以在此执行的dsr可以被任意优先级的中断打断。这就符合了分段中断的设
+计初衷。接下里就是如何回到最初进入中断时的状态的问题了。
 
-在执行完dsr之后，这里进行了上下文切换，把CPU交给了其他线程。这是因为前文说过eCos将dsr的执行
-放在了线程切换时做，也只有这一个地方做。这在中断处理的时候看起来有点突兀，不过对实时性并没有
-影响。在线程切换回来以后，CPU运行至位置11，hal\_interrupt\_end的C++代码就执行完毕，然后退
-出函数，同样会恢复进入函数时状态。pc跳转到lr的值，即hal\_interrupt\_end\_done的地址。\cite{AAPCS}
-hal\_interrupt\_end\_done是一段非常简单的汇编，核心就是swi指令。该指令会触发一个软中断，
-进入中断后至位置14，在中断处理程序中将栈指针加32，到位置15，此时就抛弃了这个软中断进入时硬件
-压入的8个字，然后退出中断，将线程栈在位置0压入的8个字弹出至对应寄存器。在位置16，一切状态
-恢复如状态0。
+在执行完dsr之后，这里进行了上下文切换，把CPU交给了其他线程。这是因为前文说过eCos
+将dsr的执行放在了线程切换时做，也只有这一个地方做。这在中断处理的时候看起来有点突
+兀，不过对实时性并没有影响。在线程切换回来以后，CPU运行至位置11，hal\_interrupt\_end
+的C++代码就执行完毕，然后退出函数，同样会恢复进入函数时状态。pc跳转到lr的值，即
+hal\_interrupt\_end\_done的地址。\cite{AAPCS}hal\_interrupt\_end\_done是一段
+非常简单的汇编，核心就是swi指令。该指令会触发一个软中断，进入中断后至位置14，在中
+断处理程序中将栈指针加32，到位置15，此时就抛弃了这个软中断进入时硬件压入的8个字，
+然后退出中断，将线程栈在位置0压入的8个字弹出至对应寄存器。在位置16，一切状态恢复如
+状态0。
 
-eCos在完成一次“中断”的过程中，实际上触发了3次中断，达到了isr立即处理，dsr延后处理的效果。如
-果一个中断的处理十分简短，甚至不用dsr，那么eCos这种中断处理方式实际上会延长中断处理时间。3次
-中断触发看似很快，但每次进入和退出中断都需要访问内存，在中断这个层面，内存访问的耗时是很可观
-的。\footnote{我的同学在一个项目中对eCos在STM3240GE开发板上的进入中断和退出中断的硬件耗时
-做过测试，其结论表明，进出中断的硬件操作对短中断程序的实时性影响不可忽略。将3次中断改为1次
-中断之后，耗时减少显著。}
+eCos在完成一次“中断”的过程中，实际上触发了3次中断，达到了isr立即处理，dsr延后处理
+的效果。如果一个中断的处理十分简短，甚至不用dsr，那么eCos这种中断处理方式实际上会
+延长中断处理时间。3次中断触发看似很快，但每次进入和退出中断都需要访问内存，在中断
+这个层面，内存访问的耗时是很可观的。\footnote{我的同学在一个项目中对eCos在STM3240GE
+开发板上的进入中断和退出中断的硬件耗时做过测试，其结论表明，进出中断的硬件操作对短
+中断程序的实时性影响不可忽略。将3次中断改为1次中断之后，耗时减少显著。}
 
 \subsection{Uppaal中的分段中断模型}
 \label{subsec:segment_uppaal}
 
-在深入了解分段中断的实现机制之后，我们就可以在Uppaal中构建分段中断的模型。在此之前，我们需要
-做一些抽象和假设。
+在深入了解分段中断的实现机制之后，我们就可以在Uppaal中构建分段中断的模型。在此之
+前，我们需要做一些抽象和假设。
 
-首先，第一个抽象，我们应该从用户程序的层次来看待中断处理，所以为了完成一个中断而在硬件上进行
-的3次中断触发行为可以被抽象。其次，我们的模型并不考虑多线程的运行环境，且并非所有操作系统在
-实现分段中断时都有线程切换的操作，因此线程切换的操作可以被抽象。最后，所有的硬件和代码描述的
-大部分语义我们都可以抽象，这与我们之前的做的抽象类似。
+首先，第一个抽象，我们应该从用户程序的层次来看待中断处理，所以为了完成一个中断而
+在硬件上进行的3次中断触发行为可以被抽象。其次，我们的模型并不考虑多线程的运行环
+境，且并非所有操作系统在实现分段中断时都有线程切换的操作，因此线程切换的操作可以
+被抽象。最后，所有的硬件和代码描述的大部分语义我们都可以抽象，这与我们之前的做的
+抽象类似。
 
-为了简化问题，以便Uppaal能够清晰准确表达模型的行为，我们还需要做一个假设。假设如下：
+为了简化问题，以便Uppaal能够清晰准确表达模型的行为，我们还需要做一个假设。假设
+如下：
 
 \begin{assumption}
 	分段中断不允许重入。
@@ -1059,8 +1066,8 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 \subsubsection{声明}
 \label{subsubsec:segment_decl}
 
-分段中断模型的声明部分如图~\ref{fig:sec_decl} 所示。它与~\ref{subsubsec:basic_decl} 小节
-完全相同，不再赘述。
+分段中断模型的声明部分如图~\ref{fig:sec_decl} 所示。它与
+~\ref{subsubsec:basic_decl} 小节完全相同，不再赘述。
 
 \begin{figure}[H]
 	\centering
@@ -1090,9 +1097,9 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 \subsubsection{分段中断模板}
 \label{subsubsec:segment_intr}
 
-分段中断模板的状态机如图~\ref{fig:intr_sec} 所示。该模板的内部声明、参数、位置和变迁的说明
-分别见表~\ref{tab:sec_intr_decl} ，表~\ref{tab:sec_intr_para}，表~\ref{tab:sec_intr_loc}
-和表~\ref{tab:sec_intr_mov} 。
+分段中断模板的状态机如图~\ref{fig:intr_sec} 所示。该模板的内部声明、参数、
+位置和变迁的说明分别见表~\ref{tab:sec_intr_decl}，表~\ref{tab:sec_intr_para}，
+表~\ref{tab:sec_intr_loc} 和表~\ref{tab:sec_intr_mov} 。
 
 \begin{table}[htb]
 	\centering
@@ -1194,17 +1201,21 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 	Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
 	的语义设置的辅助位置\\
 	\midrule[0.5pt]
-	On\_i & & intTime不超过exeTime\_i，ISR对应位为true & 中断紧急处理分段正在被处理 \\
+	On\_i & & intTime不超过exeTime\_i，ISR对应位为true & 中断紧急处理分段
+	正在被处理 \\
 	\midrule[0.5pt]
-	Suspend\_i & & intTime静止，ISR对应位为true & 中断紧急处理分段被更高优先级的中断抢
+	Suspend\_i & & intTime静止，ISR对应位为true & 中断紧急处理分段被更高
+	优先级的中断抢
 	占CPU \\ 
 	\midrule[0.5pt]
-	Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On\_i到和On\_d和Suspend\_d的完整
-	语义设置的辅助位置\\
+	Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On\_i到和On\_d和
+	Suspend\_d的完整语义设置的辅助位置\\
 	\midrule[0.5pt]
-	On\_d & & intTime不超过exeTime\_d，ISR对应位为false & 中断推迟处理分段正在被处理 \\
+	On\_d & & intTime不超过exeTime\_d，ISR对应位为false & 中断推迟处理分
+	段正在被处理 \\
 	\midrule[0.5pt]
-	Suspend\_d & & intTime静止，ISR对应位为false & 中断推迟处理分段被抢占CPU \\ 
+	Suspend\_d & & intTime静止，ISR对应位为false & 中断推迟处理分段被抢
+	占CPU \\ 
 	\bottomrule[1.5pt]
 \end{longtabu}
 
@@ -1226,42 +1237,51 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 	\multicolumn{6}{r}{续下页}
 	\endfoot
 	\endlastfoot
-	Off & Acknowledge & & 接收到中断信号 & ISR对应位置位，时钟清零 & 中断控制器接收到中断信号\\
+	Off & Acknowledge & & 接收到中断信号 & ISR对应位置位，时钟清零 & 中断
+	控制器接收到中断信号\\
 	\midrule[0.5pt]
-	Acknowledge & Wait & 本中断优先级不是最高 & & & 当前有更高优先级的中断存在，本中断等待\\
+	Acknowledge & Wait & 本中断优先级不是最高 & & & 当前有更高优先级的中断
+	存在，本中断等待\\
 	\midrule[0.5pt]
-	Wait & Auxiliary1 & 本中断优先级最高 & 接收到resume信号 & &  高优先级的中断执行完毕，
-	本中断得到CPU\\
+	Wait & Auxiliary1 & 本中断优先级最高 & 接收到resume信号 & &  高优先级
+	的中断执行完毕，本中断得到CPU\\
 	\midrule[0.5pt]
 	Wait & Wait & & 接收到中断信号 & & 忽略本中断的其他实例\\
 	\midrule[0.5pt]
-	Acknowledge & Auxiliary1 & 本中断优先级最高 & & & 本中断优先级最高，准备\\
+	Acknowledge & Auxiliary1 & 本中断优先级最高 & & & 本中断优先级最高，
+	准备\\
 	\midrule[0.5pt]
-	Auxiliary1 & On\_i & & 发送prompt信号 & & 当前中断获得CPU，打断其他正在被处理的中断\\
+	Auxiliary1 & On\_i & & 发送prompt信号 & & 当前中断获得CPU，打断其他正
+	在被处理的中断\\
 	\midrule[0.5pt]
-	On\_i & Suspend\_i & & 接收到prompt信号 & & 当前中断的紧急处理分段被更高优先级的中断打断\\
+	On\_i & Suspend\_i & & 接收到prompt信号 & & 当前中断的紧急处理分段被
+	更高优先级的中断打断\\
 	\midrule[0.5pt]
 	On\_i & On\_i & & 接收到中断信号 & & 忽略本中断的其他实例\\
 	\midrule[0.5pt]
-	On\_i & Auxiliary2 & intTime达到exeTime\_i & & ISR对应位复位，intTime时钟清零 & 紧急处理
-	分段完成，准备执行推迟处理分段\\
+	On\_i & Auxiliary2 & intTime达到exeTime\_i & & ISR对应位复位，intTime
+	时钟清零 & 紧急处理分段完成，准备执行推迟处理分段\\
 	\midrule[0.5pt]
-	Suspend\_i & On\_i & 本中断优先级最高 & 接收到resume信号 & & 高优先级的中断执行完毕，本中断
-	得到CPU\\
+	Suspend\_i & On\_i & 本中断优先级最高 & 接收到resume信号 & & 高优先级
+	的中断执行完毕，本中断得到CPU\\
 	\midrule[0.5pt]
 	Supend\_i & Suspend\_i & & 接收到中断信号 & & 忽略本中断的其他实例\\
 	\midrule[0.5pt]
-	Auxiliary2 & On\_d & 当前没有任何中断的紧急处理分段 & & & 开始执行推迟处理分段\\
+	Auxiliary2 & On\_d & 当前没有任何中断的紧急处理分段 & & & 开始执行推迟
+	处理分段\\
 	\midrule[0.5pt]
-	Auxiliary2 & Suspend\_d & 当前有其他中断的紧急处理分段 & 发送resume信号 & & 让出CPU\\
+	Auxiliary2 & Suspend\_d & 当前有其他中断的紧急处理分段 & 发送resume
+	信号 & & 让出CPU\\
 	\midrule[0.5pt]
 	On\_d & Suspend\_d & & 接收到prompt信号 & & 其他中断触发，抢占CPU\\
 	\midrule[0.5pt]
 	On\_d & On\_d & & 接收到中断信号 & & 忽略本中断的其他实例\\
 	\midrule[0.5pt]
-	On\_d & Off & intTime达到exeTime\_d & 发出resume信号 & 所有时钟清零 & 本中断结束，让出CPU\\
+	On\_d & Off & intTime达到exeTime\_d & 发出resume信号 & 所有时钟清零 & 
+	本中断结束，让出CPU\\
 	\midrule[0.5pt]
-	Suspend\_d & On\_d & 当前没有任何中断的紧急处理分段 & 接收到resume信号 & & 所有中断的紧急
+	Suspend\_d & On\_d & 当前没有任何中断的紧急处理分段 & 接收到resume信
+	号 & & 所有中断的紧急
 	处理分段结束\\
 	\midrule[0.5pt]
 	Suspend\_d & Suspend\_d & & 接收到中断信号 & & 忽略本中断的其他实例\\
@@ -1284,8 +1304,8 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 \subsubsection{模型声明}
 \label{subsubsec:segment_model_decl}
 
-模型声明与~\ref{subsubsec:basic_model_decl} 小节中描述的基本相似，见图~\ref{fig:sec_model_decl} 。
-不同的是每个中断模板在实例化的时候接受3个参数。
+模型声明与~\ref{subsubsec:basic_model_decl} 小节中描述的基本相似，见
+图~\ref{fig:sec_model_decl} 。不同的是每个中断模板在实例化的时候接受3个参数。
 
 \begin{figure}[H]
 	\centering
@@ -1310,10 +1330,11 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 \section{本章小结}
 \label{sec:sum_3}
 
-本章从现有研究相对深入透彻的多线程环境出发，立足于软硬件的实现细节，分别对基本中断，重入中断和
-分段中断归纳抽象出自己的模型，并且在Uppaal中给出了详细的构建。特别的，在分段中断的实现原理上，
-本章对eCos操作系统的内核及HAL层部分代码进行了深入分析，详细展示了分段中断这一硬件本身不支持，而
-由软件二次实现的机制。
+本章从现有研究相对深入透彻的多线程环境出发，立足于软硬件的实现细节，分别对基本中
+断，重入中断和分段中断归纳抽象出自己的模型，并且在Uppaal中给出了详细的构建。特别
+的，在分段中断的实现原理上，本章对eCos操作系统的内核及HAL层部分代码进行了深入分
+析，详细展示了分段中断这一硬件本身不支持，而由软件二次实现的机制。
 
-本章构建的三类中断模型是从大量的文献阅读和项目实践中总结出的，涵盖了现有的绝大多数中断。在遇到一个
-不能简单归结为这三类的中断时，也完全可以借鉴构建这三类中断时的思路来完成模型构建。
+本章构建的三类中断模型是从大量的文献阅读和项目实践中总结出的，涵盖了现有的绝大多
+数中断。在遇到一个不能简单归结为这三类的中断时，也完全可以借鉴构建这三类中断时的
+思路来完成模型构建。
