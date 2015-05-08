@@ -949,7 +949,7 @@ Service Routine）\footnote{注意与本文其他章节里的中断服务寄存�
 把所有中断代码放在ISR中，并提交一个空的DSR来完成传统的一段式中断的行为。此时，操作系统在此
 因为DSR的处理反而会消耗相比传统一段式中断更多的CPU周期。}
 
-%Let them flow hear
+%Let them flow
 \begin{figure}
 	\centering
 	\includegraphics[width=\textwidth]{ecos_isr_dsr}
@@ -993,17 +993,44 @@ CONTRL.SPSEL根据EXC\_RETURN恢复为1，然后将保存的上下文恢复。�
 
 在判断sched\_lock为0之后，hal\_deliver\_interrupt将一个特殊的值CYGARC\_REG\_NVIC\_
 ICSR\_PENDSVSET写入icsr寄存器，将中断检测位置位，CPU检测到一个新的中断，引发进入中断的硬件
-行为。类似的，硬件保存上下文，在lr中写入EXC\_RETURN，修改pc到中断向量表项。然后就跳转到这个
-中断的处理程序，即用汇编代码写的hal\_pendable\_svc\_vsr过程。在hal\_pendable\_svc\_vsr
-中，eCos在进程栈里伪造了一个8个字的中断帧。然后利用bx指令将lr里的值，也即是EXE\_RETURN写入
-pc寄存器，从而触发一个硬件的退出中断的行为。硬件在位置6恢复了位置3的上下文，包括主栈和对应的寄
-存器。但是，我们注意到，位置6的进程栈里多了伪造的中断帧。
+行为。注意，这是一个中断嵌套，因为前一个中断尚未退出。类似的，硬件保存上下文，在lr中写入
+EXC\_RETURN，修改pc到中断向量表项。然后就跳转到这个中断的处理程序，即用汇编代码写的
+hal\_pendable\_svc\_vsr过程。在hal\_pendable\_svc\_vsr中，eCos在进程栈里伪造了一个8个字
+的中断帧。然后利用bx指令将lr里的值，也即是EXE\_RETURN写入pc寄存器，从而触发一个硬件的退出
+中断的行为。硬件在位置6恢复了位置3的上下文，包括主栈和对应的寄存器。但是，我们注意到，位置
+6的进程栈里多了伪造的中断帧。
 
 从位置7回来之后，hal\_deliver\_interrupt函数就结束了，C++的函数结束时，会从活跃栈中弹出对
-应内容到寄存器里，将栈空间和寄存器都还原到进入函数之前的状态。\cite{AAACS}
+应内容到寄存器里，将栈空间和寄存器都还原到进入函数之前的状态。\cite{AAPCS}接着，CPU继续执行
+汇编过程hal\_default\_interrupt\_vsr的后半部分，主栈栈顶回退，然后出栈，向pc寄存器内写入
+EXC\_RETURN，触发硬件的中断返回操作。在修改CONTROL.SPSEL到达位置9后，活跃栈已经变成进程栈。
+但是此时进程栈中多了伪造的中断帧。于是硬件恢复的上下文就是伪造帧中的上下文，在这个上下文中，
+pc的值是hal\_interrupt\_end的地址，lr的值是hal\_interrupt\_end\_done的地址。于是CPU开始
+执行C++函数hal\_interrupt\_end。在hal\_interrupt\_end中，如果条件允许，所有dsr都会被执行。
+从位置10开始，CPU已经退出中断状态，所以在此执行的dsr可以被任意优先级的中断打断。这就符合了
+分段中断的设计初衷。接下里就是如何回到最初进入中断时的状态的问题了。
+
+在执行完dsr之后，这里进行了上下文切换，把CPU交给了其他线程。这是因为前文说过eCos将dsr的执行
+放在了线程切换时做，也只有这一个地方做。这在中断处理的时候看起来有点突兀，不过对实时性并没有
+影响。在线程切换回来以后，CPU运行至位置11，hal\_interrupt\_end的C++代码就执行完毕，然后退
+出函数，同样会恢复进入函数时状态。pc跳转到lr的值，即hal\_interrupt\_end\_done的地址。\cite{AAPCS}
+hal\_interrupt\_end\_done是一段非常简单的汇编，核心就是swi指令。该指令会触发一个软中断，
+进入中断后至位置14，在中断处理程序中将栈指针加32，到位置15，此时就抛弃了这个软中断进入时硬件
+压入的8个字，然后退出中断，将线程栈在位置0压入的8个字弹出至对应寄存器。在位置16，一切状态
+恢复如状态0。
+
+eCos在完成一次“中断”的过程中，实际上触发了3次中断，达到了isr立即处理，dsr延后处理的效果。如
+果一个中断的处理十分简短，甚至不用dsr，那么eCos这种中断处理方式实际上会延长中断处理时间。3次
+中断触发看似很快，但每次进入和退出中断都需要访问内存，在中断这个层面，内存访问的耗时是很可观
+的。
 
 \subsection{Uppaal中的分段中断模型}
 \label{subsec:segment_uppaal}
+
+在深入了解分段中断的实现机制之后，我们就可以在Uppaal中构建分段中断的模型。在此之前，我们需要
+做一些抽象和假设。
+
+
 
 \subsubsection{声明}
 \label{subsubsec:segment_decl}
