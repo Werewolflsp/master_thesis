@@ -246,7 +246,7 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 	chan intr[intr_id];
 	urgent broadcast chan prompt, resume;
 	bool ISR[intr_id] = {false, false,false,
-	false,false,false,false};
+					false,false,false,false};
 	
 	typedef int[0,N] Pri;
 	Pri get_highest_pri(){
@@ -800,6 +800,7 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 
 \subsubsection{模型声明}
 \label{subsubsec:reentrant_model_decl}
+
 模型声明与~\ref{subsubsec:basic_model_decl} 小节中描述的基本相似，见
 图~\ref{fig:reentrant_model_decl} 。
 
@@ -1034,7 +1035,9 @@ hal\_interrupt\_end\_done是一段非常简单的汇编，核心就是swi指令�
 eCos在完成一次“中断”的过程中，实际上触发了3次中断，达到了isr立即处理，dsr延后处理的效果。如
 果一个中断的处理十分简短，甚至不用dsr，那么eCos这种中断处理方式实际上会延长中断处理时间。3次
 中断触发看似很快，但每次进入和退出中断都需要访问内存，在中断这个层面，内存访问的耗时是很可观
-的。
+的。\footnote{我的同学在一个项目中对eCos在STM3240GE开发板上的进入中断和退出中断的硬件耗时
+做过测试，其结论表明，进出中断的硬件操作对短中断程序的实时性影响不可忽略。将3次中断改为1次
+中断之后，耗时减少显著。}
 
 \subsection{Uppaal中的分段中断模型}
 \label{subsec:segment_uppaal}
@@ -1056,7 +1059,33 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 \subsubsection{声明}
 \label{subsubsec:segment_decl}
 
-分段中断模型的声明部分与~\ref{subsubsec:basic_decl} 小节完全相同，不再赘述。
+分段中断模型的声明部分如图~\ref{fig:sec_decl} 所示。它与~\ref{subsubsec:basic_decl} 小节
+完全相同，不再赘述。
+
+\begin{figure}[H]
+	\centering
+	\begin{lstlisting}
+	const int N = 7;
+	typedef int[0, N-1] intr_id; 
+	chan intr[intr_id];
+	urgent broadcast chan prompt, resume;
+	bool ISR[intr_id] = {false, false,false,
+					false,false,false,false};
+	
+	typedef int[0,N] Pri;
+	Pri get_highest_pri(){
+		meta int i;
+		for(i = 0; i < N; i++){
+			if(ISR[i]){
+				return i;
+			} 
+		}
+		return N;
+	}
+	\end{lstlisting}
+	\caption{分段中断模型：声明}
+	\label{fig:sec_decl}
+\end{figure}
 
 \subsubsection{分段中断模板}
 \label{subsubsec:segment_intr}
@@ -1064,13 +1093,6 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 分段中断模板的状态机如图~\ref{fig:intr_sec} 所示。该模板的内部声明、参数、位置和变迁的说明
 分别见表~\ref{tab:sec_intr_decl} ，表~\ref{tab:sec_intr_para}，表~\ref{tab:sec_intr_loc}
 和表~\ref{tab:sec_intr_mov} 。
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=\textwidth]{Interrupt_section}
-	\caption{分段中断：状态机}
-	\label{fig:intr_sec}
-\end{figure}
 
 \begin{table}[htb]
 	\centering
@@ -1104,45 +1126,194 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 	\end{tabularx}
 \end{table}
 
-\begin{table}[!htb]
+\begin{figure}[H]
 	\centering
+	\includegraphics[width=\textwidth]{Interrupt_section}
+	\caption{分段中断：状态机}
+	\label{fig:intr_sec}
+\end{figure}
+
+%\begin{table}[!htb]
+%	\centering
+%	\caption{分段中断模板：位置}
+%	\label{tab:sec_intr_loc}
+%	\begin{tabularx}{\linewidth}{p{5em}p{5em}p{13em}X}
+%		\toprule[1.5pt]
+%		{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+%		\midrule[1pt]
+%		Off & 初始位置 & intTime和timeSinceStart保持静止，ISR对应位为false & 
+%		初始位置，当前没有该中断\\
+%		\midrule[0.5pt]
+%		Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
+%		\midrule[0.5pt]
+%		Wait & & intTime保持静止，ISR对应位为true & 当前有优先级更高的中断在运
+%		行，本中断等待。\\
+%		\midrule[0.5pt]
+%		Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
+%		的语义设置的辅助位置\\
+%		\midrule[0.5pt]
+%		On\_i & & intTime不超过exeTime\_i，ISR对应位为true & 中断紧急处理分段正在被处理 \\
+%		\midrule[0.5pt]
+%		Suspend\_i & & intTime静止，ISR对应位为true & 中断紧急处理分段被更高优先级的中断抢
+%		占CPU \\ 
+%		\midrule[0.5pt]
+%		Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On\_i到和On\_d和Suspend\_d的完整
+%		语义设置的辅助位置\\
+%		\midrule[0.5pt]
+%		On\_d & & intTime不超过exeTime\_d，ISR对应位为false & 中断推迟处理分段正在被处理 \\
+%		\midrule[0.5pt]
+%		Suspend\_d & & intTime静止，ISR对应位为false & 中断推迟处理分段被抢占CPU \\ 
+%		\bottomrule[1.5pt]
+%	\end{tabularx}
+%\end{table}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
 	\caption{分段中断模板：位置}
-	\label{tab:sec_intr_loc}
-	\begin{tabularx}{\linewidth}{p{5em}p{5em}p{13em}X}
-		\toprule[1.5pt]
-		{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
-		\midrule[1pt]
-		Off & 初始位置 & intTime和timeSinceStart保持静止，ISR对应位为false & 
-		初始位置，当前没有该中断\\
-		\midrule[0.5pt]
-		Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
-		\midrule[0.5pt]
-		Wait & & intTime保持静止，ISR对应位为true & 当前有优先级更高的中断在运
-		行，本中断等待。\\
-		\midrule[0.5pt]
-		Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
-		的语义设置的辅助位置\\
-		\midrule[0.5pt]
-		On\_i & & intTime不超过exeTime\_i，ISR对应位为true & 中断紧急处理分段正在被处理 \\
-		\midrule[0.5pt]
-		Suspend\_i & & intTime静止，ISR对应位为true & 中断紧急处理分段被更高优先级的中断抢
-		占CPU \\ 
-		\midrule[0.5pt]
-		Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On\_i到和On\_d和Suspend\_d的完整
-		语义设置的辅助位置\\
-		\midrule[0.5pt]
-		On\_d & & intTime不超过exeTime\_d，ISR对应位为false & 中断推迟处理分段正在被处理 \\
-		\midrule[0.5pt]
-		Suspend\_d & & intTime静止，ISR对应位为false & 中断推迟处理分段被抢占CPU \\ 
-		\bottomrule[1.5pt]
-	\end{tabularx}
-\end{table}
+	\label{tab:sec_intr_loc}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{4}{c}{续表~\thetable\hskip1em 重入中断模板：位置}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{4}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & 初始位置 & intTime和timeSinceStart保持静止，ISR对应位为false & 
+	初始位置，当前没有该中断\\
+	\midrule[0.5pt]
+	Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
+	\midrule[0.5pt]
+	Wait & & intTime保持静止，ISR对应位为true & 当前有优先级更高的中断在运
+	行，本中断等待。\\
+	\midrule[0.5pt]
+	Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
+	的语义设置的辅助位置\\
+	\midrule[0.5pt]
+	On\_i & & intTime不超过exeTime\_i，ISR对应位为true & 中断紧急处理分段正在被处理 \\
+	\midrule[0.5pt]
+	Suspend\_i & & intTime静止，ISR对应位为true & 中断紧急处理分段被更高优先级的中断抢
+	占CPU \\ 
+	\midrule[0.5pt]
+	Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On\_i到和On\_d和Suspend\_d的完整
+	语义设置的辅助位置\\
+	\midrule[0.5pt]
+	On\_d & & intTime不超过exeTime\_d，ISR对应位为false & 中断推迟处理分段正在被处理 \\
+	\midrule[0.5pt]
+	Suspend\_d & & intTime静止，ISR对应位为false & 中断推迟处理分段被抢占CPU \\ 
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
+	\caption{分段中断模板：变迁 }
+	\label{tab:sec_intr_mov}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
+	{\heiti 更新} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{6}{c}{续表~\thetable\hskip1em 基本中断模板：变迁}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
+	{\heiti 更新} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{6}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & Acknowledge & & 接收到中断信号 & ISR对应位置位，时钟清零 & 中断控制器接收到中断信号\\
+	\midrule[0.5pt]
+	Acknowledge & Wait & 本中断优先级不是最高 & & & 当前有更高优先级的中断存在，本中断等待\\
+	\midrule[0.5pt]
+	Wait & Auxiliary1 & 本中断优先级最高 & 接收到resume信号 & &  高优先级的中断执行完毕，
+	本中断得到CPU\\
+	\midrule[0.5pt]
+	Wait & Wait & & 接收到中断信号 & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	Acknowledge & Auxiliary1 & 本中断优先级最高 & & & 本中断优先级最高，准备\\
+	\midrule[0.5pt]
+	Auxiliary1 & On\_i & & 发送prompt信号 & & 当前中断获得CPU，打断其他正在被处理的中断\\
+	\midrule[0.5pt]
+	On\_i & Suspend\_i & & 接收到prompt信号 & & 当前中断的紧急处理分段被更高优先级的中断打断\\
+	\midrule[0.5pt]
+	On\_i & On\_i & & 接收到中断信号 & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	On\_i & Auxiliary2 & intTime达到exeTime\_i & & ISR对应位复位，intTime时钟清零 & 紧急处理
+	分段完成，准备执行推迟处理分段\\
+	\midrule[0.5pt]
+	Suspend\_i & On\_i & 本中断优先级最高 & 接收到resume信号 & & 高优先级的中断执行完毕，本中断
+	得到CPU\\
+	\midrule[0.5pt]
+	Supend\_i & Suspend\_i & & 接收到中断信号 & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	Auxiliary2 & On\_d & 当前没有任何中断的紧急处理分段 & & & 开始执行推迟处理分段\\
+	\midrule[0.5pt]
+	Auxiliary2 & Suspend\_d & 当前有其他中断的紧急处理分段 & 发送resume信号 & & 让出CPU\\
+	\midrule[0.5pt]
+	On\_d & Suspend\_d & & 接收到prompt信号 & & 其他中断触发，抢占CPU\\
+	\midrule[0.5pt]
+	On\_d & On\_d & & 接收到中断信号 & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	On\_d & Off & intTime达到exeTime\_d & 发出resume信号 & 所有时钟清零 & 本中断结束，让出CPU\\
+	\midrule[0.5pt]
+	Suspend\_d & On\_d & 当前没有任何中断的紧急处理分段 & 接收到resume信号 & & 所有中断的紧急
+	处理分段结束\\
+	\midrule[0.5pt]
+	Suspend\_d & Suspend\_d & & 接收到中断信号 & & 忽略本中断的其他实例\\
+	\bottomrule[1.5pt]
+\end{longtabu}
 
 \subsubsection{环境模板}
 \label{subsubsec:segment_env}
 
+这个模型中的环境模板与~\ref{subsubsec:basic_env} 小节中描述的完全一致，如
+图~\ref{fig:env_sec} 所示。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.2\textwidth]{env_basic}
+	\caption{分段中断:环境}
+	\label{fig:env_sec}
+\end{figure}
+
 \subsubsection{模型声明}
 \label{subsubsec:segment_model_decl}
 
+模型声明与~\ref{subsubsec:basic_model_decl} 小节中描述的基本相似，见图~\ref{fig:sec_model_decl} 。
+不同的是每个中断模板在实例化的时候接受3个参数。
+
+\begin{figure}[H]
+	\centering
+	\begin{lstlisting}
+	intr0 = Interrupt_section(0, 1000, 5000);
+	intr1 = Interrupt_section(1, 500, 5000);
+	intr2 = Interrupt_section(2, 500, 5000);
+	intr3 = Interrupt_section(3, 500, 5000);
+	intr4 = Interrupt_section(4, 700, 5000);
+	intr5 = Interrupt_section(5, 800, 5000);
+	intr6 = Interrupt_section(6, 900, 5000);
+	
+	env = env_section();
+	
+	system intr0, intr1, intr2, intr3, intr4, 
+			intr5, intr6, env;    
+	\end{lstlisting}
+	\caption{重入中断模型：模型声明}
+	\label{fig:sec_model_decl}
+\end{figure}
+
 \section{本章小结}
 \label{sec:sum_3}
+
+本章从现有研究相对深入透彻的多线程环境出发，立足于软硬件的实现细节，分别对基本中断，重入中断和
+分段中断归纳抽象出自己的模型，并且在Uppaal中给出了详细的构建。特别的，在分段中断的实现原理上，
+本章对eCos操作系统的内核及HAL层部分代码进行了深入分析，详细展示了分段中断这一硬件本身不支持，而
+由软件二次实现的机制。
+
+本章构建的三类中断模型是从大量的文献阅读和项目实践中总结出的，涵盖了现有的绝大多数中断。在遇到一个
+不能简单归结为这三类的中断时，也完全可以借鉴构建这三类中断时的思路来完成模型构建。

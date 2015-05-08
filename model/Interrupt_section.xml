@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_1.dtd'>
 <nta>
-	<declaration>// Place global declarations here.
-const int N = 7;
+	<declaration>const int N = 7;
 
-typedef int[0, N-1] intr_id; // Also representing the priorities with 0 the highest and N-1 the lowest
+typedef int[0, N-1] intr_id; 
 chan intr[intr_id];
 urgent broadcast chan prompt, resume;
 
-bool ISR[intr_id] = {false, false,false,false,false,false,false};
+bool ISR[intr_id] = {false, false,false,
+                false,false,false,false};
 
 typedef int[0,N] Pri;
 Pri get_highest_pri(){
@@ -76,7 +76,6 @@ ISR[id] == false</label>
 			<source ref="id0"/>
 			<target ref="id2"/>
 			<label kind="guard" x="-459" y="-399">get_highest_pri() == N</label>
-			<label kind="synchronisation" x="-374" y="-382">resume!</label>
 			<nail x="-314" y="-476"/>
 			<nail x="-314" y="-306"/>
 		</transition>
@@ -117,7 +116,8 @@ ISR[id] == false</label>
 		<transition>
 			<source ref="id2"/>
 			<target ref="id8"/>
-			<label kind="guard" x="-416" y="-713">intTime &gt;= exeTime_i</label>
+			<label kind="guard" x="-425" y="-705">intTime &gt;= exeTime_d</label>
+			<label kind="synchronisation" x="-272" y="-688">resume!</label>
 			<label kind="assignment" x="-416" y="-688">timeSinceStart = 0,
 intTime = 0</label>
 		</transition>
