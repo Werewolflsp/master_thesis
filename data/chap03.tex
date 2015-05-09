@@ -199,12 +199,12 @@
 中。又因为中断处理时间只能通过测试获得，我们需要将其参数化以保证我们的模型适用性
 更好。
 
-除了中断处理时间$T$，我们还应该关心另一个时间 \pozhehao 中断响应耗时$T^\prime$。
+除了中断处理时间$T$，我们还应该关心另一个时间 \pozhehao 中断响应耗时$t^\prime$。
 注意定义~\ref{def:intr_last} 中开始时刻是中断控制器接收到中断信号的时刻而不是
 CPU的检测到中断信号。我们在接下来的建模中会解释这个区别。
 
 \begin{definition}
-	中断响应耗时$T^\prime$指从中断控制器收到中断信号时刻开始到当前时刻消耗的时间。
+	中断响应耗时$t^\prime$指从中断控制器收到中断信号时刻开始到当前时刻消耗的时间。
 	\label{def:intr_last}
 \end{definition}
 
@@ -308,7 +308,7 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 		\midrule[1pt]
 		intTime & clock & 中断实际处理时间$t$ \\
 		\midrule[0.5pt]
-		timeSinceStart & clock & 中断响应耗时$T^\prime$ \\
+		timeSinceStart & clock & 中断响应耗时$t^\prime$ \\
 		\bottomrule[1.5pt]
 	\end{tabularx}
 \end{table}
@@ -595,7 +595,7 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 		\midrule[0.5pt]
 		intTime[M] & clock数组 & 对应每个重入中断实例的中断实际处理时间$t$ \\
 		\midrule[0.5pt]
-		timeSinceStart[M] & clock数组 & 对应每个重入中断实例的中断响应耗时$T^\prime$ \\
+		timeSinceStart[M] & clock数组 & 对应每个重入中断实例的中断响应耗时$t^\prime$ \\
 		\midrule[0.5pt]
 		initClock & 无返回值的函数 & 将所有时钟清零 \\
 		\bottomrule[1.5pt]
@@ -620,7 +620,7 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 %	\endlastfoot
 %	intTime[$M$] & clock数组 & 对应每个重入中断实例的中断实际处理时间$t$ \\
 %	\midrule[0.5pt]
-%	timeSinceStart[$M$] & clock数组 & 对应每个重入中断实例的中断响应耗时$T^\prime$ \\
+%	timeSinceStart[$M$] & clock数组 & 对应每个重入中断实例的中断响应耗时$t^\prime$ \\
 %	\midrule[0.5pt]
 %	initClock & 无返回值的函数 & 将所有时钟清零 \\
 %	\bottomrule[1.5pt]
@@ -1111,7 +1111,7 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 		\midrule[1pt]
 		intTime & clock & 中断实际处理时间$t$ \\
 		\midrule[0.5pt]
-		timeSinceStart & clock & 中断响应耗时$T^\prime$ \\
+		timeSinceStart & clock & 中断响应耗时$t^\prime$ \\
 		\bottomrule[1.5pt]
 	\end{tabularx}
 \end{table}

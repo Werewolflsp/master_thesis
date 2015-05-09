@@ -10,7 +10,8 @@ const int minInterval_1 = 50; //双发通讯中断最短间隔
 const int minInterval_2 = 60; //机电通讯中断最短间隔
 const int AD_start = 120; //小周期运行了1200us，第一个AD可以触发
 
-typedef int[0, N-1] intr_id; // Also representing the priorities with 0 the highest and 9 the lowest
+// Also representing the priorities with 0 the highest and 9 the lowest
+typedef int[0, N-1] intr_id; 
 //    0 SIO0
 //    1 双发通讯
 //    2 AD        分割为两部分，第二部分的优先级为10，可被任意中断打断
@@ -22,7 +23,8 @@ typedef int[0, N-1] intr_id; // Also representing the priorities with 0 the high
 chan intr[intr_id];
 urgent broadcast chan prompt, resume;
 
-const int D[intr_id] = {minInterval_0, minInterval_1, 500, 500, 2500, 2500, 2500}; // 中断必须执行结束的时间
+// 中断必须执行结束的时间
+const int D[intr_id] = {minInterval_0, minInterval_1, 500, 500, 2500, 2500, 2500}; 
 const int E[intr_id] = {1, // 6us 
                          1, // 11us  
                          2, // 19us
