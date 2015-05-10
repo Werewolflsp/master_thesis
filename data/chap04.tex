@@ -319,11 +319,11 @@ $>$IR2。因为IR2上连接的是从片，因此主片上中断优先级比从�
 间隔，在~\ref{subsec:exp_env} 小节中我们在定义中断触发源时会使用它。之所以
 将数值定义在这里是为了集中所有静态定义，方便修改和实验调整。
 
-第7、8行定了所有的信道。第10-14定义了所有的时间参数的数值。其中cTime
-是AD中断的无中断特权部分的执行时间，关于AD中断我们将在\ref{subsec:exp_ad} 
-小节详细介绍。第19行定义了每个中断的发生次数。因为需要验证的程序的中断具有
-周期性，因此我们只需要验证一个最大周期内的情况即可。而一个最大周期内各个中
-断的触发次数是已知的。
+第7、8行定了所有的信道。第10-14定义了所有的时间参数的数值，E[]和D[]分别存储
+$T$和$T^\prime$的数值。其中cTime是AD中断的无中断特权部分的执行时间，关于AD
+中断我们将在\ref{subsec:exp_ad} 小节详细介绍。第19行定义了每个中断的发生次
+数。因为需要验证的程序的中断具有周期性，因此我们只需要验证一个最大周期内的情
+况即可。而一个最大周期内各个中断的触发次数是已知的。
 
 第20、21行和62-70行定义的是修正估计时间相关的数据和函数。这是由于Uppaal在
 估算时间的时候区间不够准确，因此我们引入了一个修正。第22行定义了一个数组来
@@ -343,17 +343,358 @@ $>$IR2。因为IR2上连接的是从片，因此主片上中断优先级比从�
 \subsection{普通中断模板}
 \label{subsec:exp_intr}
 
+本项目中，普通中断的状态机如图~\ref{fig:exp_decl} 所示。它的构造很简单，
+和~\ref{subsubsec:basic_decl} 小节中展示的状态机类似，但是有三个主要区别：
+
+\begin{itemize}
+	\item 本状态机有一个Error位置。设置该位置是为了便于描述验证性质。
+	\item 部分参数和内部声明省略，直接使用声明中的定义。
+	\item 没有忽略本中断的其他实例。这是因为在抽象过程中我们已经保证正确
+	运行的时候，不会有本中断的下一个实例在当前实例完成之前到来。
+\end{itemize}
+
+模板只有一个参数\pozhehao 中断ID，没有内部声明，位置和变迁说明见
+表~\ref{tab:exp_intr_loc} 和~\ref{tab:exp_intr_mov} 。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{Interrupt}
+	\caption{某嵌入式平台中断模型：普通中断}
+	\label{fig:exp_intr}
+\end{figure}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
+	\caption{某嵌入式平台中断模板：位置}
+	\label{tab:exp_intr_loc}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{4}{c}{续表~\thetable\hskip1em 基本中断模板：位置}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{4}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & 初始位置 & intTime和timeSinceStart保持静止，ISR和IRR对应位为false & 
+	初始位置，当前没有该中断\\
+	\midrule[0.5pt]
+	Acknowledge & 关键位置 & ISR对应位为false，IRR对应位为true & 中断控制器
+	接收到中断信号\\
+	\midrule[0.5pt]
+	Wait & & intTime保持静止，ISR对应位为false, IRR对应位为true & 当前有优先
+	级更高的中断在运行，本中断等待。\\
+	\midrule[0.5pt]
+	Auxiliary1 & 关键位置 & ISR对应位为true，IRR对应位为false & 为表达Wait和
+	Acknowledge到On的语义设置的辅助位置\\
+	\midrule[0.5pt]
+	On & & intTime不超过E[id]（中断处理时间$T$），ISR对应位为true，IRR对
+	应位为false & 中断正在被处理 \\
+	\midrule[0.5pt]
+	Suspend & & intTime静止，ISR对应位为true，IRR对应位为false & 中断被更高
+	优先级的中断抢占CPU \\ 
+	\midrule[0.5pt]
+	Auxiliary2 & 关键位置 & ISR对应位为false，IRR对应位为false & 为表达On到
+	Off的完整语义设置的辅助位置\\
+	\midrule[0.5pt]
+	Error & 关键位置 &  & 中断未在中断响应时间上限之内完成\\
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
+	\caption{嵌入式平台中断模板：变迁 }
+	\label{tab:exp_intr_mov}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
+	{\heiti 更新} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{6}{c}{续表~\thetable\hskip1em 基本中断模板：变迁}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
+	{\heiti 更新} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{6}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & Acknowledge & & 接收到中断信号 & IRR对应位置位，时钟清零 & 中断控
+	制器接收到中断信号\\
+	\midrule[0.5pt]
+	Acknowledge & Wait & 本中断优先级不是最高 & & & 当前有更高优先级的中断存
+	在，本中断等待\\
+	\midrule[0.5pt]
+	Wait & Auxiliary1 & 本中断优先级最高 & 接收到resume信号 & IRR对应位复位，
+	ISR对应位置位，本中断入栈 &  高优先级的中断执行完毕，本中断得到CPU\\
+	\midrule[0.5pt]
+	Acknowledge & Auxiliary1 & 本中断优先级最高 & & IRR对应位复位，ISR对应位
+	置位，本中断入栈 & 本中断优先级最高，准备执行\\
+	\midrule[0.5pt]
+	Auxiliary1 & On & & 发送prompt信号 & & 当前中断获得CPU，打断其他正在被处
+	理的中断\\
+	\midrule[0.5pt]
+	On & Suspend & & 接收到prompt信号 & & 当前中断被更高优先级的中断打断\\
+	\midrule[0.5pt]
+	Suspend & On & 本中断在栈顶且无更高优先级的中断处在Wait位置 & 接收到resume
+	信号 & fix\_count增加 & 高优先级的中断执行完毕，本中断得到CPU\\
+	\midrule[0.5pt]
+	On & Auxiliary2 & intTime[id]达到E[id] & & ISR对应位复位，本中断出栈 & 
+	中断执行结束\\
+	\midrule[0.5pt]
+	Auxiliary2 & Off & & 发送resume信号 & & 通知其他中断获取CPU\\
+	\midrule[0.5pt]
+	Wait & Error & 中断响应时间超过上限 & & & 中断处理超时\\
+	\midrule[0.5pt]
+	On & Error & 中断响应时间超过上限 & & & 中断处理超时\\
+	\midrule[0.5pt]
+	Suspend & Error & 中断响应时间超过上限 & & & 中断处理超时\\
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+注意在Auxiliary2到Off的变迁中，时钟没有清零。这是因为在~\ref{subsec:exp_env} 
+小节中的中断源需要用到intTime[id]时钟里的数据来表达中断触发的时序关系。
+
 \subsection{AD中断模板}
 \label{subsec:exp_ad}
+
+AD中断是一个特殊的中断。它与~\ref{subsubsec:segment_intr} 小节中提到的分段中断
+类似，也是一个分段中断。然而它的分段的实现并非依赖一个类似于eCos那样完整的机制，
+而是在中断自身调用特殊指令EOI清除了中断服务位，即将ISR寄存器对应位复位。这样做并
+不会立即跳转其他中断去执行，之前被AD中断抢占的的其他中断依旧被抢占着。但是之后触
+发的任何中断都会打断AD中断，抢占CPU。如果后来的中断优先级较低，那么就会造成优先
+级反转。另外，在后来的中断运行结束之后，CPU会回到AD中断执行。尽管此时看ISR寄存器
+的话，AD中断的对应位为0而有其他中断的对应位为1。因为恢复现场是按照退栈的顺序进行
+的，这也是为什么我们在该模型中不得不引入一个栈。
+
+除此以外，抽象时，我们将一个小周期内的连续6个AD中断看成了一个以减小状态空间，那
+么一个AD中断内部的变迁就需要变得复杂一些。由于原本每个AD中断被分成了两部分，在模
+型中的AD中断就会被分成$2\times 6$段。
+
+AD中断的状态机如图~\ref{fig:exp_AD} 所示。AD的参数只有中断ID，内部声明只有一个
+用来计数的count。AD中断的位置和变迁说明分别见表~\ref{tab:exp_AD_loc} 和
+表~\ref{tab:exp_AD_mov} 。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{AD}
+	\caption{某嵌入式平台中断模型：AD中断}
+	\label{fig:exp_AD}
+\end{figure}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
+	\caption{某嵌入式平台中断模板：位置}
+	\label{tab:exp_AD_loc}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{4}{c}{续表~\thetable\hskip1em 基本中断模板：位置}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{4}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & 初始位置 & intTime和timeSinceStart保持静止，ISR和IRR对应位为false & 
+	初始位置，当前没有该中断\\
+	\midrule[0.5pt]
+	Acknowledge & 关键位置 & ISR对应位为false，IRR对应位为true & 中断控制器
+	接收到中断信号\\
+	\midrule[0.5pt]
+	Wait & & intTime保持静止，ISR对应位为false, IRR对应位为true & 当前有优先
+	级更高的中断在运行，本中断等待。\\
+	\midrule[0.5pt]
+	Auxiliary1 & 关键位置 & ISR对应位为true，IRR对应位为false & 为表达Wait和
+	Acknowledge到On的语义设置的辅助位置\\
+	\midrule[0.5pt]
+	On & & intTime不超过E[id]（EOI之前的中断处理时间$T_{before}$），ISR对应位
+	为true，IRR对应位为false & EOI之前，中断正在被处理\\
+	\midrule[0.5pt]
+	Suspend & & intTime静止，ISR对应位为true，IRR对应位为false & EOI之前，中
+	断被更高优先级的中断抢占CPU \\ 
+	\midrule[0.5pt]
+	Non\_intr & & intTime不超过cTime（EOI之后的中断处理时间$T_{after}$），
+	ISR对应位为false，IRR对应位为false & EOI之后，中断正在被处理\\
+	\midrule[0.5pt]
+	Suspend\_2 & & intTime静止，ISR对应位为false，IRR对应位为false & EOI之
+	后，中断被其他中断抢占CPU \\
+	\midrule[0.5pt]
+	Auxiliary2 & 关键位置 & ISR对应位为false，IRR对应位为false & 为表达Non\_intr
+	到Off的完整语义设置的辅助位置\\
+	\midrule[0.5pt] 
+	Error & 关键位置 &  & 中断未在中断响应时间上限之内完成\\
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
+	\caption{嵌入式平台中断模板：变迁 }
+	\label{tab:exp_AD_mov}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
+	{\heiti 更新} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{6}{c}{续表~\thetable\hskip1em 基本中断模板：变迁}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
+	{\heiti 更新} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{6}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & Acknowledge & & 接收到中断信号 & IRR对应位置位，时钟清零，计数器启
+	动 & 中断控制器接收到中断信号\\
+	\midrule[0.5pt]
+	Acknowledge & Wait & AD中断优先级不是最高 & & & 当前有更高优先级的中断存
+	在，AD中断等待\\
+	\midrule[0.5pt]
+	Wait & Auxiliary1 & AD中断优先级最高 & 接收到resume信号 & IRR对应位复位，
+	ISR对应位置位，AD中断入栈 &  高优先级的中断执行完毕，AD中断得到CPU\\
+	\midrule[0.5pt]
+	Acknowledge & Auxiliary1 & AD中断优先级最高 & & IRR对应位复位，ISR对应位
+	置位，AD中断入栈 & AD中断优先级最高，准备执行\\
+	\midrule[0.5pt]
+	Auxiliary1 & On & & 发送prompt信号 & & AD中断获得CPU，打断其他正在被处理
+	的中断\\
+	\midrule[0.5pt]
+	On & Suspend & & 接收到prompt信号 & & EOI之前，AD中断被更高优先级的中断打
+	断\\
+	\midrule[0.5pt]
+	Suspend & On & AD中断在栈顶且无更高优先级的中断处在Wait位置 & 接收到resume
+	信号 & fix\_count增加 & 高优先级的中断执行完毕，AD中断得到CPU\\
+	\midrule[0.5pt]
+	On & Non\_intr & intTime[id]达到E[id] & & ISR对应位复位，intTime[id]清
+	零 & 中断执行到EOI\\
+	\midrule[0.5pt]
+	Non\_intr & On & intTime[id]达到cTime且计数器小于6 & & 计数器加1，ISR对
+	应位置位，intTime[id]时钟清零 & EOI之后，AD中断执行完且执行不足6次，执行
+	下一次\\ 
+	\midrule[0.5pt]
+	Non\_intr & Suspend\_2 & & 接收到prompt信号 & & EOI之后，AD中断被其他中
+	断打断\\
+	\midrule[0.5pt]
+	Suspend\_2 & Non\_intr & AD中断在栈顶且当前无其他中断可以抢占CPU & 接收
+	到resume信号 & fix\_count增加 & 抢占AD的中断及之后的其他中断执行完毕，AD
+	中断得到CPU\\
+	\midrule[0.5pt]
+	Non\_intr & Auxiliary & intTime[id]达到cTime且计数器达到6 & & 计数器清
+	零，intTime[id]时钟清零，AD中断出栈 & EOI之后，AD中断执行完且执行达到6次，
+	退出中断\\ 
+	\midrule[0.5pt]
+	Auxiliary2 & Off & & 发送resume信号 & & 通知其他中断获取CPU\\
+	\midrule[0.5pt]
+	Wait & Error & 中断响应时间超过上限 & & & 中断处理超时\\
+	\midrule[0.5pt]
+	On & Error & 中断响应时间超过上限 & & & 中断处理超时\\
+	\midrule[0.5pt]
+	Suspend & Error & 中断响应时间超过上限 & & & 中断处理超时\\
+	\midrule[0.5pt]
+	Non\_intr & Error & 中断响应时间超过上限 & & & 中断处理超时\\
+	\midrule[0.5pt]
+	Suspend\_2 & Error & 中断响应时间超过上限 & & & 中断处理超时\\
+	\bottomrule[1.5pt]
+\end{longtabu}
 
 \subsection{环境模板}
 \label{subsec:exp_env}
 
+环境模板本身并不复杂，但是需要表达出中断的时序关系。在本项目中，中断并不是随机
+触发的。除了前文提到的定时中断和通讯中断以外，还有一条时序约束，即在每个小周期
+内，3号中断执行了120us之后才会触发AD中断。环境模板的状态机用不同的变迁表示了这
+些中断的触发时序关系，如图~\ref{fig:exp_env} 所示。
+
+在这个模板中，位置只有一个且没有实际意义。图中的变迁中都表达了，随机选择一个中
+断号，触发该中断并将中断计数器减少1。在所有变迁条件中都要求对应中断计数器大于0。
+对于0号和1号中断，它们是通讯中断，因此条件是它们从未触发过或者距离上一个触发超
+过了$T^\prime$。对于3号中断，它是一个小周期中断。在整个大周期中，会有5个小周
+期，因此每个周期才能触发一个3号中断。对于2号中断，它只能在3号中断执行了120us之
+后触发。对于剩下的456号中断，因为只会触发一次且无其他约束，因此可在任意时刻触
+发。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{env}
+	\caption{某嵌入式平台中断模型：环境模板}
+	\label{fig:exp_env}
+\end{figure}
+
 \subsection{系统声明}
 \label{subsec:exp_model_decl}
+
+系统声明很简单，如图~\ref{fig:exp_model_decl} 所示。在此不赘述。
+
+\begin{figure}[H]
+	\centering
+	\begin{lstlisting}
+	intr0 = Interrupt(0);
+	intr1 = Interrupt(1);
+	intr2 = AD(2);
+	intr3 = Interrupt(3);
+	intr4 = Interrupt(4);
+	intr5 = Interrupt(5);
+	intr6 = Interrupt(6);
+	environment = env();
+	system intr0, intr1, intr2, intr3, 
+		intr4, intr5, intr6, environment
+	\end{lstlisting}
+	\caption{某嵌入式平台中断模型：系统声明}
+	\label{fig:exp_model_decl}
+\end{figure}
 
 \section{分析与验证}
 \label{sec:experiment}
 
+在构建完模型之后，我们用Uppaal提供的模拟器和验证对模型进行分析验证。首先，我们
+对性质~\ref{property:all} 尝试验证。性质~\ref{property:all} 表示所有中断都不
+会进入Error位置，即所有中断均不会超时。
+
+\begin{property}
+	A[] not (intr0.Error || intr1.Error || intr2.Error || intr3.Error 
+	|| intr4.Error || intr5.Error || intr6.Error) 
+	\label{property:all}
+\end{property}
+
+然而，该性质验证失败，反例如图~\ref{fig:exp_counter} 所示。我们跟随该反例复原
+一下执行流程。首先3号中断触发，没有其他任何干扰因素，3号中断运行至结束。此时2号
+中断，即AD中断触发条件满足，AD中断触发。AD中断执行到EOI指令之后，ISR对应位复位，
+此时IRR和ISR所有为均为0，栈内只有AD中断。此时，4号中断触发，抢占CPU。此时，栈内
+4号中断在AD中断之上，也就是说在4号中断执行结束之前，AD中断会被一直阻塞。由
+\ref{subsec:exp_decl} 小节的定义可知$T_4=1011us$，$T^\prime_2=500us$，很显然，
+$T_4>T^\prime_2$。因此，AD中断会超时。在与合作方工程师交流之后，我们一致认为在
+系统这种中断触发序列是有可能的。避免方式也很简单，只要将4号中断的触发时机提前，
+保证其在AD执行到EOI之前触发即可。
+
+\begin{property}
+	A[] not (intr0.Error || intr1.Error || intr3.Error || intr4.Error || 
+	intr5.Error || intr6.Error) 
+	\label{property:some}
+\end{property}
+
+接着我们尝试验证AD中断之外的其他中断的实时性。经过尝试，性质~\ref{property:some}
+在消耗数小时后报告内存溢出，验证中止。这个结果在意料之中，因为在~\ref{subsec:exp_decl} 
+小节的定义中，我们可以看到0号中断总共可以触发50次，这会极度增大状态空间，内存
+溢出是正常。在尝试了各种办法之后，只有在将0号中断的数量修改到5以下，Uppaal才会
+给出验证结果\pozhehao 验证通过。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{msc}
+	\caption{性质~\ref{property:all} 的反例}
+	\label{fig:exp_counter}
+\end{figure}
+
 \section{本章小结}
 \label{sec:sum_4}
+
+本章结合实际项目，对某嵌入式平台上的中断驱动程序进行分析，对其中断设置在Uppaal中
+构建了形式化模型，然后对其实时性属性进行分析和验证。该工作成功找出一个可能违反中
+断实时性要求的反例，并与对方工程师交流得到确认。然而，由于状态空间太大，该模型对
+其他中断的实时性是否满足要求并没有给出一个最终的结论。
