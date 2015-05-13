@@ -1,5 +1,5 @@
 
-\ctitle{基于Uppaal的\\中断实时性分析与验证}
+\ctitle{基于时间自动机的\\中断实时性分析与验证}
 % 根据自己的情况选，不用这样复杂
 \makeatletter
 \ifthu@bachelor\relax\else
@@ -28,7 +28,7 @@
 % \cseconddiscipline{系统结构}
 % \postdoctordate{2009年7月——2011年7月}
 
-\etitle{Timing Analysis on Interrupt\\Based on Uppaal} 
+\etitle{Timing Analysis on Interrupt\\Based on Timed Automata} 
 % 这块比较复杂，需要分情况讨论：
 % 1. 学术型硕士
 %    \edegree：必须为Master of Arts或Master of Science（注意大小写）
@@ -54,11 +54,10 @@
 
 % 定义中英文摘要和关键字
 \begin{cabstract}
-   本文总结了三种常见的中断类型，分析了他们的软硬件实现。从实时性角度，本文利用
-   实时系统建模验证集成工具Uppaal构建了这三种中断的时间自动机模型，并在文中给出
-   了详细的抽象和建模细节。结合实际项目，本文应用该建模方法对某嵌入式平台上的中
-   断驱动程序中的中断在Uppaal中进行建模，并分析和验证了其实时性性质，对其中违反
-   实时性约束的中断设置给出了反例。
+   本文总结了三种常见的中断类型，分析了他们的软硬件实现。从实时性角度，本文对这
+   些中断构造了相应的时间自动机模型。结合实际项目，本文应用该建模方法对某嵌入式
+   平台上的中断驱动程序中的中断在Uppaal中进行建模，并分析和验证了其实时性性质，
+   对其中违反实时性约束的中断设置给出了反例。
 \end{cabstract}
 
 \ckeywords{中断，时间自动机，实时性，建模，验证}
@@ -67,13 +66,12 @@
    The thesis summerized three most common types of interrupts and analyzed
    their implementation from the perspectives of both hardware and software.
    Focusing on the timing property, this thesis constructed models of the 
-   timed automata of the thses interrupts in Uppaal, a integrated tool 
-   environment for modeling, validation and verification of real-time systems.
-   It gives all the specifics on abstraction and modelling. The thesis applied
-   the same approach on a set of interrupt-driven software on some embedded
-   platform from an actual project. After analysis and verification on its
-   timing properties, the thesis proved there was a flaw in the interrupt
-   setting and produced a counter example.
+   timed automata of the thses interrupts .It gives all the specifics on 
+   abstraction and modelling. The thesis applied the same approach on a set 
+   of interrupt-driven software on some embedded platform from an actual 
+   project. After analysis and verification on its timing properties, the 
+   thesis proved there was a flaw in the interrupt setting and produced a 
+   counter example.
 \end{eabstract}
 
 \ekeywords{Interrupt, Timed Automata, Timing, Model, Verification}
