@@ -9,8 +9,8 @@
 %  × 时间自动机
 %        秒表自动机（stopwatch automata) 
 %		 CCS parallele composition
-%  × 中断驱动程序验证
 %  × 实时性分析
+%  × 中断驱动程序验证
 
 时间自动机（Timed Automata，TA）是由Alur R.和D.L. Dill在上世纪九十年代出
 提出来的理论。他们用时间自动机来描述实时系统在时间上的行为。他们从形式化语言的角
@@ -18,6 +18,11 @@
 是对传统自动机理论\cite{Hopcroft:2006:IAT:1196416}的一个重要扩展。得益于
 时间自动机的提出，自动机模型以及模型检测技术\cite{Clarke:2000:MC:332656}
 才能将时间纳入系统的考虑。
+
+% TA definition here
+\begin{definition}
+content...
+\end{definition}
 
 在时间自动机理论中，时钟是一个连续的实数变量。同一个时间自动机系统里的时钟在每个
 位置都均匀的增长。时钟的值在一些变迁中可以被重置为0，或者在某些变迁中用时钟的值
@@ -50,8 +55,11 @@ content...
 表达的限制与本文需要描述的行为相冲突。同时，中断时间自动机对本文将要涉及的部分中
 断机制不能很好地描述，因此，本文不采用此类自动机。
 
-用一个单独的状态机来描述一个系统是非常困难的。伴随着时间自动机理论，时间自动机网
-络（Network of Timed Automata，NTA)也被提出。
+用一个单独的状态机来描述一个系统是非常困难的。伴随着时间自动机理论，时间自动机之
+间的交互，即时间自动机网络（Network of Timed Automata，NTA)也被提出。
+\cite{Alur:1994:TTA:180782.180519}\cite{Bouyer06timedunfoldings}
+很多研究都集中在如何将一个时间自动机网络在时间上展开。\cite{Bouyer06timedunfoldings}
+
 
 来自大阪大学的Makoto Higashi等人提出了一套在一个CPU模拟器上测试中断的方法以
 检测中断带来的潜在数据竞争。该方法包含两个方面：第一是在可能产生数据竞争的指令处
