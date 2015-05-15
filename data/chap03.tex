@@ -3,7 +3,7 @@
 %%% TeX-master: t
 %%% End:
 
-\chapter{基于\uppaal 的中断模型}
+\chapter{基于时间自动机的中断模型}
 \label{cha:intr}
 
 %——————————————————————— Cut from chapter 1 ——————————————————————%
@@ -50,27 +50,6 @@ Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若
 在运行的绝大多数桌面操作系统系统或嵌入式软件中的中断。在介绍中断之前，为了接下来
 行文的方便，我们将先认识一下\uppaal 中的模型。
 
-\section{\uppaal 中的模型组成}
-\label{sec:model_combine}	
-一套\uppaal 模型由以下三部分组成。
-\begin{itemize}
-	\item \emph{声明}：整个模型系统中共有的声明，可以是变量或函数。在整个
-	系统中都可以访问。
-	\item \emph{自动机模板}：各类自动机的通用模板，一个模型系统可以有多个
-	模板，一个模板在系统中可以对应多个实例。
-		\begin{enumerate}[(1)]
-			\item \emph{声明}：模板内部的变量或函数，只有本模板的实例可
-			以访问。
-			\item \emph{位置}：时间自动机的位置，每个位置可以有初始（
-			initial），紧急（urgent），关键（committed）。关键位置与紧
-			急位置上，模型中的时钟都停止。不同的是，当有自动机在关键位置时，
-			在下一个状态迁移必须从某一个关键位置发出。
-			\item \emph{变迁}：位置到位置的迁移。变迁包含选择（select）
-			、条件（guard）、同步（sync）、更新（update）四个属性。其中，
-			同步和更新是同时发生的。
-		\end{enumerate}	
-	\item \emph{模型声明}：定义组成系统的模板实例。
-\end{itemize}
 
 \section{基本中断模型}
 \label{sec:basic}
