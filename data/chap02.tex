@@ -11,6 +11,8 @@
 %		 CCS parallele composition
 %  × 实时性分析
 %  × 中断驱动程序验证
+\section{时间自动机理论}
+\label{sec:TA}
 
 时间自动机（Timed Automata，TA）是由Alur R.和D.L. Dill在上世纪九十年代出提出
 来的理论。他们用时间自动机来描述实时系统在时间上的行为。他们从形式化语言的角度定
@@ -31,30 +33,45 @@
 我们用$\varPhi_{df}(X)$表示$\varPhi(X)$的一个子集，在该子集中，不允许$x-y 
 \bowtie c$这类约束。类似的，我们定义$\varPhi_{up}(X)$表示$\varPhi(X)$的另一个
 子集，在该子集中，只有规定上界的约束$x\prec c$被允许，其中$\prec \in \{<,\leq\}$。
-接着，我们给出时间自动机的定义。
 
-% TA definition here
+一个时钟取值是指一个函数$v:X\longrightarrow R_+\cup\{0\}$，或者是一个$R_+\cup\{0\}$
+上一个$|X|$维向量。我们将所有时钟的取值集合记为$H$，一个自动机的配置是一个二元组
+$(l,v)\in L\times H$，包含一个位置和一个时钟取值。每个时钟子集$\rho\subseteq X$
+都定义了一个重置函数$r_\rho:H\longrightarrow H$。对每一个时钟取值$v$和每个时钟变
+量$x\in X$，有
+
+\begin{equation}
+	r_\rho v(x)=
+	\begin{cases}
+		0 & \mbox{if~$x\in \rho$}\\
+		v(x) & \mbox{if~$x\notin \rho$}
+	\end{cases}
+\end{equation}
+
+即$r_\rho$把集合$\rho$中的所有时钟的值重置为0而保持其他时钟的值不变。接着，我们给
+出时间自动机的定义。
+
 \begin{definition}
 	\label{def:TA}
-	一个定义在$\varSigma$上的时间自动机$A$是指一个元组$(L,l_0,X,\varSigma,E,Inv)$。
+	一个定义在$\varSigma$上的时间自动机$A$是指一个元组$(L,l_0,X,\varSigma,E,
+	Inv)$。
 	\begin{itemize}
 		\item $L$表示位置的有限集。
 		\item $l_0\in L$，表示初始位置集合。
 		\item $X$表示时钟的有限集。
 		\item $\varSigma$表示动作的有限字母表。
-		\item $E\subseteq L\times \varPhi_{df}(X)\times \varSigma \times 2^X\times L$，
-		表示边的有限集。一条边$(l,\delta,a,r,l')\subseteq E$，
-		或者$(l\stackrel{\delta,a,r}{\longrightarrow}l')$，
-		表示从位置$l$到$l'$的，标签为$a$，约束为$\delta$，重置为$r\in 2^X$的一
-		条变迁。
-		\item $Inv\subseteq \varPhi_{ub}(X)^L$，与一个位置绑定，
-		表示一个时钟上限约束。
+		\item $E\subseteq L\times \varPhi_{df}(X)\times \varSigma \times 2^X
+		\times L$，表示边的有限集。一条边$(l,\delta,a,\rho,l')\subseteq E$，或者
+		$(l\stackrel{\delta,a,\rho}{\longrightarrow}l')$，表示从位置$l$到$l'$的，
+		标签为$a$，约束为$\delta$，重置为$r_\rho \in 2^X$的一条变迁。
+		\item $Inv:L\longrightarrow \varPhi_{ub}(X)$，表示每个位置上的时钟上
+		限约束。
 	\end{itemize}
 \end{definition}
 
 在时间自动机理论中，时钟是一个连续的实数变量。同一个时间自动机系统里的时钟在每个
 位置都均匀的增长。时钟的值在一些变迁中可以被重置为0，或者在某些变迁中用时钟的值
-的范围作为条件。因此，时间自动机用来描述并发的依赖时间的行为是非常理想的。然而，
+的范围作为条件。因此，时间自动机用来描述并行的依赖时间的行为是非常理想的。然而，
 在某些情况下，例如抢占式调度，我们需要知道系统在某些位置停留的时间。时钟变量只能
 被重置却不能被赋值。这就导致了对时间自动机的扩展。在这项扩展力，时钟在某些位置的
 的导数可以是0，即意味着该时钟在该位置下停止计时。这样的自动机被称为聚合图（Integration
@@ -72,24 +89,48 @@ Automata，SWA）。除了上述的理论性研究以外，还有人做了应用
 
 如上文所说，秒表自动机是对时间自动机的拓展。我们在这里给出秒标准自动机的定义。
 
-% SWA definition here
 \begin{definition}
 	\label{def:SWA}
-	一个定义在$\varSigma$上的秒表自动机$B$是指一个元组$(L,l_0,X,\varSigma,E,Inv)$。
+	一个定义在$\varSigma$上的秒表自动机$B$是指一个元组$(L,l_0,X,\mu,\varSigma,
+	E,Inv)$。
 	\begin{itemize}
 		\item $L$表示位置的有限集。
 		\item $l_0\in L$，表示初始位置集合。
 		\item $X$表示时钟的有限集。
+		\item $\mu:L\longrightarrow \{0,1\}^{|X|}$，表示每个位置下所有的时钟的导数。
 		\item $\varSigma$表示动作的有限字母表。
-		\item $E\subseteq L\times \varPhi_{df}(X)\times \varSigma \times 2^X\times L$，
-		表示边的有限集。一条边$(l,\delta,a,r,l')\subseteq E$，
-		或者$(l\stackrel{\delta,a,r}{\longrightarrow}l')$，
-		表示从位置$l$到$l'$的，标签为$a$，约束为$\delta$，重置为$r\in 2^X$的一
-		条变迁。
-		\item $Inv\subseteq \varPhi_{ub}(X)^L$，与一个位置绑定，
-		表示一个时钟上限约束。
+		\item $E\subseteq L\times \varPhi_{df}(X)\times \varSigma \times 2^X
+		\times L$，表示边的有限集。一条边$(l,\delta,a,\rho,l')\subseteq E$，或者
+		$(l\stackrel{\delta,a,\rho}{\longrightarrow}l')$，表示从位置$l$到$l'$的，
+		标签为$a$，约束为$\delta$，重置为$r_\rho \in 2^X$的一条变迁。
+		\item $Inv:L\longrightarrow \varPhi_{ub}(X)$，表示每个位置上的时钟上
+		限约束。
 	\end{itemize}
 \end{definition}
+
+我们用$\mu_l$表示$\mu(l)$，在位置$l$的每个时钟的导数。
+
+\begin{definition}
+	\label{def:step}
+	一个秒表自动机的\textbf{一步}（step）表示以下其中一种：
+	\begin{itemize}
+		\item 一个离散步：$(l,v)\stackrel{0}{\longrightarrow}(l',v')$，当存在$e=(l,
+		\delta,a,\rho,l')\in E$，使得$v$满足$\delta$且$v'=r_\rho(v)$。
+		\item 一个连续步：$(l,v)\stackrel{t}{\longrightarrow}(l,v+t\mu_l), t\in R_+$。
+	\end{itemize}
+\end{definition}
+
+\begin{definition}
+	\label{def:run}
+	秒表的自动机的一个\textbf{运行}（run）即一个从$(l_0,v_0)$开始的步有限序列
+	\begin{equation}
+		\xi: (l_0,v_0)\stackrel{t_1}{\longrightarrow}(l_1,v_1)\stackrel{t_2}
+		{\longrightarrow}\dots\stackrel{t_n}{\longrightarrow}(l_n,v_n)
+	\end{equation}
+\end{definition}
+
+这个运行的逻辑长度就是$n$，其运行时间$|\xi|=t_1+t_2+\dots+t_n$。注意，这里的离
+散步（即位置变迁）并没有耗时。
 
 在秒表自动机的基础上，B{\'e}rard等人针对单执行资源多任务运行的场景提出了中断
 时间自动机（Interrupt Timed Automata，ITA）。\cite{Berard:2012:ITA:2158996.2159045}
@@ -98,14 +139,36 @@ Automata，SWA）。除了上述的理论性研究以外，还有人做了应用
 表达的限制与本文需要描述的行为相冲突。同时，中断时间自动机对本文将要涉及的部分中
 断机制不能很好地描述，因此，本文不采用此类自动机。
 
-用一个单独的状态机来描述一个系统是非常困难的。伴随着时间自动机理论，时间自动机之
-间的交互，即时间自动机网络（Network of Timed Automata，NTA)也被提出。
-\cite{Alur:1994:TTA:180782.180519}\cite{Bouyer06timedunfoldings}
-很多研究都集中在如何将一个时间自动机网络在时间上展开。\cite{Bouyer06timedunfoldings}
+为了描述一个并发系统，时间自动机的并行组合作为时间自动机的扩展，被加入自动机理论。
+在过程运算中，为了建模描述并行过程的不同方面，许多不同的并行组合操作符被提出，例如
+CCS\cite{Milner:1989:CC:534666}和CSP\cite{Hoare:1978:CSP:359576.359585}。\uppaal 
+建模语言\cite{Larsen97uppaalin}实现了CCS组合操作符。组合允许两个过程$P$和$Q$以
+并行的方式组合，记作$P|Q$，这也是过程运算与串行计算模型的关键区别所在。并行组合
+允许过程$P$和$Q$同时独立运行。而且，并行组合允许$P$和$Q$之间有交互，即二者可以通
+过共享的信道进行同步和信息交互。一个过程可以同时接通多个信道。信道可以是同步或异步
+的。同步信道中，信号发送方必须有接收方，发送才能被允许，否则就要一直等待；而异步信
+道中，发送方不需要任何接收方即可发送。在某些过程计算中，例如$\pi$运算
+\cite{Sangiorgi:2001:PTM:559050}，信道本身可以被作为消息通过其他信道发送，这就改
+变了过程通信的拓扑结构。
 
+将多个时间自动机通过并行组合整合在一起，我们将这样的系统称之为时间自动机网络（Network 
+of Timed Automata，NTA)也被提出。\cite{Alur:1994:TTA:180782.180519,Bouyer06timedunfoldings}
+也有部分研究都集中在如何将一个时间自动机网络在时间上展开。\cite{Bouyer06timedunfoldings}
 
+\section{实时性分析}
+\label{sec:timing_study}
 
+伴随着时间自动机理论的发展，实时性分析也取得了很大的进步。时至今日，出现了很多优
+秀的实时模型检测工具，例如\uppaal \cite{Behrmann04atutorial, Larsen97efficientverification}
+和\mycommand{Kronos}\cite{Yovine97kronos:a}。这些工具都以时间自动机的理论为
+基础，并将这些理论转化为使用性能很好的算法
+\cite{Behrmann:2002:UIS:646847.707113, Behrmann:2006:LUB:1165374.1165376, BehrmannHV00, Behrmann:to}
+和数据结构\cite{Behrmann98efficienttimed, Larsen97efficientverification, Larsen:1999:CDD:774455.774459}。
 
+这些工具的成熟性已经被诸多案例所证实。\cite{D'Argenio:1997:BRP:646481.691445,Ernits:2005:MAS:1124427.1124429,Hen05a,Jensen:2000:SUU:646846.706958,Lamport:2005:RMC:2156375.2156396,Larsen:2005:TRE:1086228.1086283,Lindahl:1998:FDA:646482.691449}
+
+\section{中断研究}
+\label{sec:intr_study}
 来自大阪大学的Makoto Higashi等人提出了一套在一个CPU模拟器上测试中断的方法以
 检测中断带来的潜在数据竞争。该方法包含两个方面：第一是在可能产生数据竞争的指令处
 触发中断，第二是人为修改外部中断给中断处理程序的输入。中断会在每次读或写内存的指

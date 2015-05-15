@@ -53,6 +53,13 @@
 \usepackage[amsmath,thmmarks]{ntheorem}
 \newtheorem{property}{性质}[chapter]
 
+\def\mycommand{\bgroup\obeyspaces\mycommandaux}
+\def\mycommandaux#1{\mycommandauxii #1\relax\relax\egroup}
+\def\mycommandauxii#1{%
+	\ifx\relax#1\else \ifcat#1\@sptoken{} \expandafter\expandafter\expandafter\mycommandauxii\else
+	\ifnum`#1=\uccode`#1 {\normalsize #1}\else {\footnotesize \uppercase{#1}}\fi \expandafter\expandafter\expandafter\mycommandauxii\expandafter\fi\fi}
+\def\uppaal {\mycommand{Uppaal}}
+
 % 你可以在这里修改配置文件中的定义，导言区可以使用中文。
 \def\myname{刘盛鹏}
 \def\intel{Intel\textsuperscript{\textregistered}}
