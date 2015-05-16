@@ -191,7 +191,7 @@ STATUS寄存器中的中断标志位置位。
 制，所以重入的次数实际上总有一个上界。\footnote{这也是中断嵌套的层数限制，本质上
 与中断是否重入没有关系。}
 
-\subsection{分段中断模型}
+\subsection{分段中断}
 \label{subsec:segment}
 
 分段中断，顾名思义，就是中断并非一次执行，而是分成两段或者多段\footnote{目前尚未
@@ -200,6 +200,17 @@ STATUS寄存器中的中断标志位置位。
 
 \subsubsection{分段中断的行为}
 \label{subsubsec:segment_behavior}
+
+\begin{figure}[H]
+	\centering
+	\subcaptionbox{普通中断的执行流\label{fig:intr_exec}}
+	{\includegraphics[width=0.3\textwidth]{interrupt_exec_model}}
+	\hspace{4em}%
+	\subcaptionbox{分段中断的执行流\label{fig:ecos_intr_exec}}
+	{\includegraphics[width=0.3\textwidth]{ecos_interrupt_model}}
+	\caption{不同的中断执行流}
+	\label{fig:two_intr_exec}
+\end{figure}
 
 在实际应用中，中断的行为并不一直忠实地遵从其硬件实现，操作系统可以在一定程度上改
 变中断的行为。在嵌入式操作系统中，出于实时性的考虑，一个中断的运行时间不应该过长，
@@ -211,17 +222,6 @@ STATUS寄存器中的中断标志位置位。
 时性要求的前提下完成该中断。eCos等部分操作系统尽管实现方式各异，采用的都是分段中
 断的模式。\cite{ecos}图~\ref{fig:intr_exec} 和图~\ref{fig:ecos_intr_exec} 分
 别展示了两种中断的执行流。
-
-\begin{figure}[H]
-	\centering
-	\subcaptionbox{普通中断的执行流\label{fig:intr_exec}}
-	{\includegraphics[width=0.35\textwidth]{interrupt_exec_model}}
-	\hspace{4em}%
-	\subcaptionbox{分段中断的执行流\label{fig:ecos_intr_exec}}
-	{\includegraphics[width=0.35\textwidth]{ecos_interrupt_model}}
-	\caption{不同的中断执行流}
-	\label{fig:two_intr_exec}
-\end{figure}
 
 分段中断的出现从嵌入式开发的角度来讲，极大地方便了应用的开发，可以在不牺牲实时性
 的同时让中断完成更繁重的任务。这一点在开发中断驱动程序（Interrupt-driven Program
@@ -426,34 +426,23 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 开发板上的进入中断和退出中断的硬件耗时做过测试，其结论表明，进出中断的硬件操作对短
 中断程序的实时性影响不可忽略。将3次中断改为1次中断之后，耗时减少显著。}
 
-\section{本章小结}
-\label{sec:sum_3}
+\section{构建中断模型}
+\label{sec:intr_model}
 
-本章从现有研究相对深入透彻的多线程环境出发，立足于软硬件的实现细节，分别对基本中
-断，重入中断和分段中断归纳抽象出自己的模型，并且在\uppaal 中给出了详细的构建。特别
-的，在分段中断的实现原理上，本章对eCos操作系统的内核及HAL层部分代码进行了深入分
-析，详细展示了分段中断这一硬件本身不支持，而由软件二次实现的机制。
-
-本章构建的三类中断模型是从大量的文献阅读和项目实践中总结出的，涵盖了现有的绝大多
-数中断。在遇到一个不能简单归结为这三类的中断时，也完全可以借鉴构建这三类中断时的
-思路来完成模型构建。
-
-\section{\uppaal 中的基本中断模型}
-\label{subsec:basic_uppaal}
+\subsection{中断的形式化}
+\label{subsec:intr_formal}
 
 在构建中断模型之前，我们首先需要对中断场景做一些必要的简化和抽象，同时辅以合理的
-
 假设，以保证我们最终的问题可解。本文的出发点是多中断相互作用下的中断实时性研究。
-中断处理程序的语义我们并不关心，因此中断处理程序的语义可以被忽略。一个中断处理程
-序就是一个如图~\ref{fig:interrupt_state} 所示的状态机。而另一方面，我们需要中断
-处理的时间。这个时间完全依赖硬件平台，同样的代码换另一套硬件时间会完全不一样，虽
-然直观上不同的中断处理的相对时间在不同硬件平台应该保持一致。但事实并非如此。如定
-义~\ref{def:intr_time} 中所示，我们需要的中断处理时间$T$。$\tau_1$和$\tau_3$
-在同一个硬件平台上针对不同的中断，理论上是一样的。但是$\tau_1$和$\tau_3$在不同
-的硬件平台上不一样，这一点很容易理解。$\tau_2$在不同的硬件平台上也不一定会保持同
-样的相对关系，也就是说，两段中断处理程序代码在两个不同的硬件平台A和B上的运行时间
-的比值$\tau_{2A}/\tau_{2B}$不一定保持一致。这完全依赖于针对两个硬件平台的编译过
-程。
+中断处理程序的语义我们并不关心，因此中断处理程序的语义可以被忽略。但另一方面，我
+们需要中断处理的时间。这个时间完全依赖硬件平台，同样的代码换另一套硬件时间会完全
+不一样，虽然直观上不同的中断处理的相对时间在不同硬件平台应该保持一致。但事实并非
+如此。如定义~\ref{def:intr_time} 中所示，我们需要的中断处理时间$T$。$\tau_1$和
+$\tau_3$在同一个硬件平台上针对不同的中断，理论上是一样的。但是$\tau_1$和$\tau_3$
+在不同的硬件平台上不一样，这一点很容易理解。$\tau_2$在不同的硬件平台上也不一定会
+保持同样的相对关系，也就是说，两段中断处理程序代码在两个不同的硬件平台A和B上的运
+行时间的比值$\tau_{2A}/\tau_{2B}$不一定保持一致。这完全依赖于针对两个硬件平台的
+编译过程。
 
 \begin{definition}
 	中断处理的时间$T$
@@ -470,9 +459,129 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 \end{definition}
 
 因此，在不同的硬件平台，中断处理的时间并没有严格的规律可循，针对一个新的硬件平，
-中断处理的时间只能通过测试获得。我们在构建中断模型时，需要将中断处理时间纳入模型
-中。又因为中断处理时间只能通过测试获得，我们需要将其参数化以保证我们的模型适用性
-更好。
+中断处理的时间只能通过测试获得。
+
+接下来，一个重要的元素是优先级。如上文所说，中断优先级在运行时保持不变。但是每个
+优先级只有一个中断。模型中所有的中断实例都会有一个独特的中断优先级。因此，我们也
+可以将中断优先级与中断ID视作同一个变量。
+
+在本文中，我们只考虑~\ref{sec:intr_machanism} 小节中归纳的三种中断类型。我们提
+出了三条假设。
+
+\begin{assumption}
+	\label{ass:not_both}
+	重入和分段这两个特征不会同时存在于一个中断。
+\end{assumption}
+
+\begin{assumption}
+	\label{ass:reentrant_limit}
+	重入中断有重入次数上限，记为$M$，表示一个重入中断在系统中最多可以有$M$个实例
+	同时存在。
+\end{assumption}
+
+\begin{assumption}
+	\label{ass:split_two}
+	分段中断只分为两段。
+\end{assumption}
+
+假设~\ref{ass:not_both} 是为了简化问题，同时具有重入和分段的状态机将十分复杂。
+假设~\ref{ass:reentrant_limit} 则是由于两点原因。其一，无限重入会导致状态空间
+无限大，有悖于时间自动机的理论框架，也会使得无法在该自动机上应用模型检测等技术。
+其二，在~\ref{subsec:reentrant_hardware} 小节中，我们已经说明，在实际运行中，
+重入中断的上界是存在的。假设~\ref{ass:split_two} 则是由于我们现在已知的分段中断
+实现均把中断分为两段，且从分段中断机制的设计初衷来看，没有必要分成更多的段来执行。
+
+我们将一个中断记为$\gamma$。对应基本中断，重入中断和分段中断，我们分别记为
+$\gamma_b$，$\gamma_r$和$\gamma_s$。有以下定义：
+
+\begin{definition}
+	\label{def:basic}
+	一个基本中断$\gamma_b$代表一个元组$(id, T)$。
+	\begin{itemize}
+		\item $id$代表中断号，即中断处理程序在中断向量表中的序号，也是该中断的优
+		先级
+		\item $T$代表中断处理时间。
+	\end{itemize}
+\end{definition}
+
+\begin{definition}
+	\label{def:reentrant}
+	一个重入中断$\gamma_r$代表一个元组$(id, T, M)$。
+	\begin{itemize}
+		\item $id$同定义~\ref{def:basic}
+		\item $T$同定义~\ref{def:basic}
+		\item $M\in N_+$代表中断重入次数上限。
+	\end{itemize}
+\end{definition}
+
+\begin{definition}
+	\label{def:segment}
+	一个重入中断$\gamma_s$代表一个元组$(id, T_1, T_2)$。
+	\begin{itemize}
+		\item $id$同定义~\ref{def:basic}
+		\item $T_1$代表中断前段的处理时间。
+		\item $T_2$代表中断后端的处理时间。
+	\end{itemize}
+\end{definition}
+
+\begin{definition}
+	\label{def:intr}
+	中断
+	\begin{equation}
+		\gamma := \gamma_b~|~\gamma_r~|~\gamma_s
+	\end{equation}
+\end{definition}
+
+我们将中断的集合记作$\varGamma$，那么一个中断系统的定义如下：
+
+\begin{definition}
+	一个中断系统$\Delta$为一个元组$(\varGamma,n)$。其中$\varGamma$代表该系
+	统中的中断集合$n\in N_+$且$\forall \gamma\in\varGamma, \gamma=(id, T, M)
+	\implies M = n$。
+\end{definition}
+
+\subsection{中断的时间自动机模型}
+\label{subsec:intr_automata}
+
+每个中断根据其类型的不同，分别有不同的时间自动机模型。我们现在先不急着给出这些自
+动机。因为在一个中断系统$\Delta$中，多个中断之间的交互必不可少。因此我们需要构建
+的是一个时间自动机网络。各中断的时间自动机模型需要以某种并行组合方式组合起来。在
+本文中，我们采用\uppaal 建模语言实现的CCS并行组合\cite{Bengtsson04timedautomata:}。
+为此，我们需要将定义~\ref{def:SWA} ，即秒表自动机的定义做一个简单的扩展。
+
+\begin{definition}
+	\label{def:SWA_ext}
+	一个定义在$\varSigma$上的扩展秒表自动机$\beta$是指一个元组$(L,l_0,V,\mu,
+	\varSigma,E,Inv)$。
+	\begin{itemize}
+		\item $L$表示位置的有限集。
+		\item $l_0\in L$，表示初始位置集合。
+		\item $V$表示变量的有限集，包含时钟变量和有界整数变量。
+		\item $\mu:L\longrightarrow \{0,1\}^{|X|}$，表示每个位置下所有的时钟的
+		导数。$X$表示所有时钟变量的集合。
+		\item $\varSigma$表示动作的有限字母表。
+		\item $E\subseteq L\times \varPhi(V)\times \varSigma \times 2^V
+		\times L$，表示边的有限集。一条边$(l,\delta,a,\rho,l')\subseteq E$，或者
+		$(l\stackrel{\delta,a,\varphi}{\longrightarrow}l')$，表示从位置$l$到$l'$的，
+		标签为$a$，约束为$\delta'$，变量修改为$\varphi \in 2^V$的一条变迁。
+		\item $Inv:L\longrightarrow \varPhi(V)$，表示每个位置上的变量约束。
+	\end{itemize}
+\end{definition}
+
+\section{本章小结}
+\label{sec:sum_3}
+
+本章从现有研究相对深入透彻的多线程环境出发，立足于软硬件的实现细节，分别对基本中
+断，重入中断和分段中断归纳抽象出自己的模型，并且在\uppaal 中给出了详细的构建。特别
+的，在分段中断的实现原理上，本章对eCos操作系统的内核及HAL层部分代码进行了深入分
+析，详细展示了分段中断这一硬件本身不支持，而由软件二次实现的机制。
+
+本章构建的三类中断模型是从大量的文献阅读和项目实践中总结出的，涵盖了现有的绝大多
+数中断。在遇到一个不能简单归结为这三类的中断时，也完全可以借鉴构建这三类中断时的
+思路来完成模型构建。
+
+\section{\uppaal 中的基本中断模型}
+\label{subsec:basic_uppaal}
 
 除了中断处理时间$T$，我们还应该关心另一个时间 \pozhehao 中断响应耗时$t^\prime$。
 注意定义~\ref{def:intr_last} 中开始时刻是中断控制器接收到中断信号的时刻而不是
@@ -482,13 +591,6 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 	中断响应耗时$t^\prime$指从中断控制器收到中断信号时刻开始到当前时刻消耗的时间。
 	\label{def:intr_last}
 \end{definition}
-
-接下来，一个重要的元素是优先级。如上文所说，中断优先级在运行时保持不变。但是每个
-优先级只有一个中断。模型中所有的中断实例都会有一个独特的中断优先级。因此，我们也
-可以将中断优先级与中断ID视作同一个变量。事实上，我们也是这么做的。另一方面，由于
-对每个中断来说，其优先级都是独一无二的，因此我们无法将优先级作为一个模型中共有的
-部分。如同上述的中断处理时间$T$，中断优先级在建模时只能作为一个参数加入\uppaal 模
-板之中。
 
 以上只描述了~\ref{subsec:basic_hardware} 节中的中断向量表中的内容，模型中还需
 要加入中断控制器的内容。得益于\uppaal 的模块同步机制，中断控制的机制可以利用中断模
