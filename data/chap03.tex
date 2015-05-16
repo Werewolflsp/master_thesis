@@ -6,67 +6,39 @@
 \chapter{基于时间自动机的中断模型}
 \label{cha:intr}
 
-%——————————————————————— Cut from chapter 1 ——————————————————————%
-中断系统在硬件实现上可以是一个包含控制线路的独立系统，也可以被集成进存储
-器子系统中。对于前者，在IBM个人机上，广泛使用可编程中断控制器（Programmable 
-Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若干中
-断请求设备和处理器的中断引脚之间，从而实现对处理器中断请求线路（多为一针
-或两针）的复用。作为另一种中断实现的形式，即存储器子系统实现方式，可以将
-中断端口映射到存储器的地址空间，这样对特定存储器地址的访问实际上是中断请
-求。一般桌面领域的PC机中，中断控制器一般是集成在处理器内部，\footnote{
-	例如\intel{}推出的8086系列处理器中，集成了\intel{} 8259系列中断控制器。}
-而在嵌入式领域，很多厂商推出的微控制器实现了外置的中断控制器。\footnote{
-	例如意法半导体（STMicroelectronics）推出的STM32F4系列微控制器中，在ARM
-	的CPU外提供了中断控制器。}
+中断从出现发展到现在，尤其是在嵌入式开发领域的大量应用，其行为模式和实现方式也已
+经有了很大的变化。现在在各个平台使用的中断也不再是单纯的一种简单模式，而是多种方
+式并存。本章将从中断行为模式的角度，归纳常见的三种中断，并深入剖析他们的实现方式。
+在最后，本章针对这三类中断会给出基于时间自动机理论的形式化模型。
 
-\subsection{操作系统中的中断}
-\label{subsec:intr_OS}
-在实际应用中，中断的行为并不一直忠实地遵从其硬件实现，操作系统可以在一定
-程度上改变中断的行为。在嵌入式操作系统中，出于实时性的考虑，一个中断的运
-行时间不应该过长，但是许多中断需要实现的逻辑功能却比较复杂。因此一个通用
-的解决方案就是在操作系统中将中断分成两段，前一段在中断触发时立即执行，后
-一段则延后执行。后一段代码的执行优先级较低，因此有可能被其他低优先级中断
-甚至是普通代码抢先执行。这样，在编写中断代码的时候，将需要立即执行不容延
-迟同时运行时间较短的代码放在第一段，其他的对延时不敏感，或者任务繁重，或
-者需要和其他线程进行同步交互的代码放在第二段，就能在满足实时性要求的前提
-下完成该中断。eCos等许多操作系统尽管实现方式各异，采用的都是分段中断的模
-式。\cite{ecos}图~\ref{fig:intr_exec} 和图~\ref{fig:ecos_intr_exec} 
-分别展示了两种中断的执行流。
+\section{中断机制}
+\label{sec:intr_machanism}
 
-\begin{figure}[H]
-	\centering
-	\subcaptionbox{普通中断的执行流\label{fig:intr_exec}}
-	{\includegraphics[width=0.35\textwidth]{interrupt_exec_model}}
-	\hspace{4em}%
-	\subcaptionbox{分段中断的执行流\label{fig:ecos_intr_exec}}
-	{\includegraphics[width=0.35\textwidth]{ecos_interrupt_model}}
-	\caption{不同的中断执行流}
-	\label{fig:two_intr_exec}
-\end{figure}
-%——————————————————————— Cut from chapter 1 ——————————————————————%
+按照行为模式的不同，本章将中断分为\textbf{基本中断}，\textbf{重入中断}和
+\textbf{分段中断}三个类型。
 
+\subsection{基本中断}
+\label{subsec:basic}
 
-本章将介绍三种中断，分别从他们的行为，实现方式和建模来描述。这三种中断覆盖了现今
-在运行的绝大多数桌面操作系统系统或嵌入式软件中的中断。在介绍中断之前，为了接下来
-行文的方便，我们将先认识一下\uppaal 中的模型。
+通常，在我们接触到的非实时性桌面电脑环境中的中断就是一个本章所述的基本中断。
 
+\subsubsection{基本中断的行为}
+\label{subsubsec:basic_behavior}
 
-\section{基本中断模型}
-\label{sec:basic}
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.5\textwidth]{thread_states}
-	\caption{单个线程的状态}
-	\label{fig:thread_state}
-\end{figure}
-
-通常，在我们接触到的非实时性电脑环境中，中断的行为就是符合一个中断的基本模型。其
-行为模式就是简单的抢占当前线程，在执行结束之后恢复上下文继续执行被抢占的线程。
+基本中断的行为模式是简单的抢占当前线程，在执行结束之后恢复上下文继续执行被抢占的
+线程。
 
 中断处理程序的行为，与多线程程序研究中的线程行为十分相似。我们对中断模型的构建就
 参考了多线程程序中的线程模型。如图~\ref{fig:thread_state} 所示，通常，一个线程
 会被刻画为以下三个状态。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.4\textwidth]{thread_states}
+	\caption{单个线程的状态}
+	\label{fig:thread_state}
+\end{figure}
+
 \begin{itemize}
 	\item \emph{就绪}：线程可以运行但是当前并不占有CPU。
 	\item \emph{运行}：线程正在运行。
@@ -81,7 +53,7 @@ Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.5\textwidth]{interrupt_states}
+	\includegraphics[width=0.4\textwidth]{interrupt_states}
 	\caption{单个中断的状态}
 	\label{fig:interrupt_state}
 \end{figure}
@@ -93,6 +65,13 @@ Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若
 	\item \emph{阻塞}：被优先级更高的中断打断。
 \end{itemize}
 
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.5\textwidth]{thread_table}
+	\caption{线程表}
+	\label{fig:thread_table}
+\end{figure}
+
 在多线程的场景中，线程之间的切换往往由线程调度器掌管。线程调度器不是硬件，而是一
 段代码，负责实现线程的调度算法。时间片轮转，优先级不同的线程之间的抢占，甚至是线
 程优先级的动态变化，都由线程调度器实现。一般而言，线程调度器是系统内核的一重要组
@@ -103,14 +82,7 @@ Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.6\textwidth]{thread_table}
-	\caption{线程表}
-	\label{fig:thread_table}
-\end{figure}
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.25\textwidth]{interrupt_vector_table}
+	\includegraphics[width=0.2\textwidth]{interrupt_vector_table}
 	\caption{中断向量表}
 	\label{fig:interrupt_vector_table}
 \end{figure}
@@ -121,7 +93,7 @@ Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若
 所示。中断向量表中的每个表项被称为一个中断向量（Interrupt Vector），指代一个中
 断处理程序。在实现时，一个中断向量通常是一个函数指针，指向某个函数，该函数的内容
 就是中断处理。因此，不同于多线程场景中，一个线程优先级可以对应多个线程，如图~
-\ref{fig:thread_table}中所示，一个中断优先级对应最多一个中断。中断优先级是由CPU
+\ref{fig:thread_table} 中所示，一个中断优先级对应最多一个中断。中断优先级是由CPU
 或外部中断控制器等硬件决定的，实际使用时可能用不到所有的优先级，因此会有大量的中
 断向量表项为空。
 
@@ -143,31 +115,36 @@ Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若
 到此，一个概念中最基本的中断模型就形成了。中断处理程序状态机如图~\ref{fig:interrupt_state} 
 所示，中断间的组织如图~\ref{fig:interrupt_vector_table} 所示。
 
-\subsection{通用的软硬件实现}
+\subsubsection{基本中断的实现}
 \label{subsec:basic_hardware}
 
-为了更加忠实地构建模型，我们需要了解中断的实现。因为基本中断模型完全是由硬件实现
-的，了解硬件实现的细节能帮我们掌握更多细节，这有助于帮助我们针对遇到的问题进行合
-适的抽象。另一方面，虽然中断的实现完全依赖硬件，但是各个硬件平台在实现上述基本中
-断机制的方法大同小异，因此本节将介绍一种通用的实现。
+中断的实现最主要两个部分是的中断控制器和中断向量表。
 
-中断的硬件实现最主要两个部分是的中断控制器和中断向量表。
+中断控制器在硬件实现上可以是一个包含控制线路的独立系统，也可以被集成进存储器子系
+统中。对于前者，在IBM个人机上，广泛使用可编程中断控制器（Programmable Interrupt 
+Controller，PIC）来负责中断响应和处理。PIC被连接在若干中断请求设备和处理器的中断
+引脚之间，从而实现对处理器中断请求线路（多为一针或两针）的复用。作为另一种中断实
+现的形式，即存储器子系统实现方式，可以将中断端口映射到存储器的地址空间，这样对特
+定存储器地址的访问实际上是中断请求。一般桌面领域的PC机中，中断控制器一般是集成在
+处理器内部，\footnote{例如\intel{}推出的8086系列处理器中，集成了\intel{} 8259
+系列中断控制器。}而在嵌入式领域，很多厂商推出的微控制器实现了外置的中断控制器。
+\footnote{例如意法半导体（STMicroelectronics）推出的STM32F4系列微控制器中，在
+ARM的CPU外提供了中断控制器。}
 
-中断控制器在\ref{sec:intr}节有简要的介绍。无论是CPU内部还是外部的控制器，其控
-制逻辑都是类似的。通常，CPU会有一个或多个指示当前各种状态的STATUS寄存器。STATUS
-寄存器中有一位表示是否有中断需要处理，我们称其为中断标志位。CPU在每一个指令周期
-之后会检查中断标志位是否置位，如果置位，CPU会和中断控制器通信获取中断号，然后保
-存当前上下文，即将上下文压栈，如图~\ref{fig:stack} 所示\footnote{上下文的具体
-内容视不同硬件平台决定，图中只作示意。}。程序计数器（PC）加载中断向量表中对应表项
-所指向的中断处理程序地址，开始执行中断程序。进入中断处理时，CPU还会修改STATUS寄
-存器中的其他的位以表示它现在正在处理中断。相应的，中断控制器上会有寄存器修改指示
-当前所有的中断的状态。在接受新的中断触发信号之后，中断控制器内部的判定逻辑会决定
-该中断是否可以立即抢占CPU，进而决定是否需要将CPU的STATUS寄存器中的中断标志位置
-位。
+无论是CPU内部还是外部的控制器，其控制逻辑都是类似的。通常，CPU会有一个或多个指示
+当前各种状态的STATUS寄存器。STATUS寄存器中有一位表示是否有中断需要处理，我们称其
+为中断标志位。CPU在每一个指令周期之后会检查中断标志位是否置位，如果置位，CPU会和
+中断控制器通信获取中断号，然后保存当前上下文，即将上下文压栈，如图~\ref{fig:stack} 
+所示\footnote{上下文的具体内容视不同硬件平台决定，图中只作示意。}。程序计数器（
+PC）加载中断向量表中对应表项所指向的中断处理程序地址，开始执行中断程序。进入中断
+处理时，CPU还会修改STATUS寄存器中的其他的位以表示它现在正在处理中断。相应的，中
+断控制器上会有寄存器修改指示当前所有的中断的状态。在接受新的中断触发信号之后，中
+断控制器内部的判定逻辑会决定该中断是否可以立即抢占CPU，进而决定是否需要将CPU的
+STATUS寄存器中的中断标志位置位。
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.9\textwidth]{stack}
+	\includegraphics[width=0.7\textwidth]{stack}
 	\caption{中断发生前后的栈变化}
 	\label{fig:stack}
 \end{figure}
@@ -182,7 +159,286 @@ Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若
 的表项并未被赋值。上电之后，在初始化时，由软件给中断向量表各个用到的表项填上对应
 的值，通常是各中断处理函数的函数指针。
 
-\subsection{\uppaal 中的基本中断模型}
+\subsection{重入中断}
+\label{subsec:reentrant}
+
+在~\ref{subsubsec:basic_behavior}小节中，我们说到中断会被更高优先级的中断打断，
+低优先级的中断到来之后也只有等待高优先级的中断执行完才能得到CPU资源。那么如果一个
+中断在执行时，有一个同优先级的中断触发了，或者更准确的表述是，一个中断的某一个实
+例在运行时，它的下一个实例触发，这是，新来的中断实例应该进入就绪状态等待。然而，
+事实上，很多应用场景里，会要求同优先级的中断也可以打断当前中断。如果某中断的下一
+个实例能够抢占前一个实例，我们就称该中断支持重入（re-entrance）。许多中断平台现
+在已经支持中断重入，也有许多软件产品使用了中断重入这个特性。
+
+\subsubsection{重入中断的行为}
+\label{subsubsec:reentrant_behavior}
+
+从我们对重入的定义可以看出，重入中断的本质在于同中断的下一个实例可以打断当前实例， 
+其行为也如~\ref{fig:interrupt_state} 所示，只不过从运行到阻塞状态也可以由当前
+中断的下一个实例触发。
+
+\subsubsection{重入中断的实现}
+\label{subsec:reentrant_hardware}
+
+重入中断的实现非常简单。它与~\ref{subsec:basic_hardware} 小节中描述的基本中断
+的通用实现基本相同。差别仅在于中断控制器的优先级判断规则。
+
+如果我们从栈（Stack）的角度来看中断重入，会发现重入与非重入的抢占在栈的行为上是
+完全一致。在~\ref{subsec:basic_hardware} 小节中我们描述了中断抢占发生时上下文
+会被压栈。重入时栈上的行为与图~\ref{fig:stack} 完全一致。由此可见，重入的次数没
+有任何理论上的限制。即同一个中断的任意多个实例都可以连续到来，并打断前一个实例。
+但是，在真实的硬件平台上，因为栈的大小受到内存容量的约束，重入的次数受栈大小的限
+制，所以重入的次数实际上总有一个上界。\footnote{这也是中断嵌套的层数限制，本质上
+与中断是否重入没有关系。}
+
+\subsection{分段中断模型}
+\label{subsec:segment}
+
+分段中断，顾名思义，就是中断并非一次执行，而是分成两段或者多段\footnote{目前尚未
+见到将中断分为多段的案例}执行。这个划分是中断机制主动为之，而非被其他中断抢占CPU
+而被动分段执行。即，在本中断当前优先级最高的前提下，本中断仍然会分段执行。
+
+\subsubsection{分段中断的行为}
+\label{subsubsec:segment_behavior}
+
+在实际应用中，中断的行为并不一直忠实地遵从其硬件实现，操作系统可以在一定程度上改
+变中断的行为。在嵌入式操作系统中，出于实时性的考虑，一个中断的运行时间不应该过长，
+但是许多中断需要实现的逻辑功能却比较复杂。因此一个通用的解决方案就是在操作系统中
+将中断分成两段，前一段在中断触发时立即执行，后一段则延后执行。后一段代码的执行优
+先级较低，因此有可能被其他低优先级中断甚至是普通代码抢先执行。这样，在编写中断代
+码的时候，将需要立即执行不容延迟同时运行时间较短的代码放在第一段，其他的对延时不
+敏感，或者任务繁重，或者需要和其他线程进行同步交互的代码放在第二段，就能在满足实
+时性要求的前提下完成该中断。eCos等部分操作系统尽管实现方式各异，采用的都是分段中
+断的模式。\cite{ecos}图~\ref{fig:intr_exec} 和图~\ref{fig:ecos_intr_exec} 分
+别展示了两种中断的执行流。
+
+\begin{figure}[H]
+	\centering
+	\subcaptionbox{普通中断的执行流\label{fig:intr_exec}}
+	{\includegraphics[width=0.35\textwidth]{interrupt_exec_model}}
+	\hspace{4em}%
+	\subcaptionbox{分段中断的执行流\label{fig:ecos_intr_exec}}
+	{\includegraphics[width=0.35\textwidth]{ecos_interrupt_model}}
+	\caption{不同的中断执行流}
+	\label{fig:two_intr_exec}
+\end{figure}
+
+分段中断的出现从嵌入式开发的角度来讲，极大地方便了应用的开发，可以在不牺牲实时性
+的同时让中断完成更繁重的任务。这一点在开发中断驱动程序（Interrupt-driven Program
+）的时候极为重要。中断驱动程序的主要功能都是在中断中完成。如果功能比较复杂或者牵
+涉到与其他硬件的交互，不可避免地，中断处理时间会比较长。在没有分段处理的情况下，
+低优先级的中断的响应时间将大为增加，实时性无法保证。
+
+\subsubsection{分段中断的实现}
+\label{subsubsec:segment_software}
+
+分段中断的行为看起来很美好，但是这有悖于我们对中断机制一直以来的理解。正如上文所
+说，分段中断是操作系统系统的二次实现。这也是为了实现实时性需求嵌入式开发程序员在
+硬件平台不支持分段中断的情况下做出的机智创作。市面上多家实时操作系统提供了分段中
+断的机制。在此我会着重介绍eCos操作系统的分段中断机制。
+
+eCos是一个跨平台的操作系统，支持各类CPU和板载中断控制器。不同平台对应的汇编代码
+并不一样，在此我仅以ARM提供的Cortex M系列CPU为硬件平台讲解eCos的分段中断机制。
+为了使读者能够理解我将要描述的实现细节，首先我会对Cortex M系列CPU跟中断处理相关
+的内容做简要介绍。
+
+Cortex M系列CPU采用ARMv7-M体系结构，该体系结构针对移动平台设计，在能耗上相当好
+的控制。在中断\footnote{在ARMv7-M Architecture Reference Manual中，ARM称本文
+所说的中断为异常（Exception），其中，0-15号异常为预定义好的，其处理程序也已固化
+在硬件上，16号以后的异常被称为中断（Interrupt）。这只是术语的不同，为了防止混淆，
+在本文中统称中断（Interrupt）。}控制机制上，ARMv7-M体系结构与~\ref{subsec:basic_hardware}
+小节所述类似，也采用在栈上保存上下文，进入中断处理之后结束再恢复上下文。
+
+ARMv7-M体系结构包含13个通用寄存器，R0-R12，以及3个额外的特殊寄存器。
+
+\begin{description}
+	\item[SP] 栈指针，用来指示当前活跃的栈的顶部内存位置。SP有时也被称为
+	R13。
+	\item[LR] 链接寄存器，用来保存返回链接。返回链接是指进行了一次带返回
+	的跳转指令的返回地址，通常是跳转指令的下一条指令。该寄存器的复位值为0xFFFFFFFF，
+	使用该值进行跳转返回会触发一个错误。LR寄存器在进入中断时也会更新，我们会在
+	下文描述。LR有时也被称为R14。
+	\item[PC] 程序计数器。PC有时也被称为R15。
+\end{description}
+
+在ARMv7-M体系结构中，内存中同时存在两个栈空间\pozhehao 进程栈和主栈，进程栈属
+于当前线程，主栈则是所有程序共用。尽管每个线程都有一个自己的进程栈，但是SP所指
+向的进程栈是当前进程栈。CPU内有两个特殊寄存器。
+
+\begin{description}
+	\item[PSP] 进程栈指针，永远指向当前进程栈的栈顶。
+	\item[MSP] 主栈指针，永远指向主栈栈顶。
+\end{description}
+
+SP的读取值可以是PSP的值也可以是MSP的值，即PS可以指向当前进程栈栈顶也可以指向主
+栈栈顶，这取决于专用CONTROL寄存器的SPSEL位（即第1位）的当前值。如果为CONTROL.SPSEL
+的值为0，SP指向主栈栈顶；如果CONTROL.SPSEL的值为1，SP指向进程栈栈顶。CPU有线
+程模式（Thread Mode）和处理模式（Handler Mode），在线程模式下，CONTROL.SPSEL
+的取值可以是0或1；在处理模式下，CONTROL.SPSEL的读取值永远为0。换句话说，在线程
+模式下，SP可以指向进程栈或主栈，但是在处理模式下，SP永远指向主栈。CPU在接收中断
+时会进入处理模式。在处理模式中，CPU可以使用psp和msp在汇编代码里直接操作对应的栈。
+
+\begin{table}[htb]
+	\centering
+	\caption{EXC\_RETURN定义的中断返回行为，无浮点扩展}
+	\label{tab:exe_return_noFP}
+	\begin{tabularx}{\linewidth}{XXX}
+		\toprule[1.5pt]
+		{\heiti EXC\_RETURN} & {\heiti 返回到模式} & {\heiti 返回到栈}\\
+		\midrule[1pt]
+		0xFFFFFFF1 & 处理模式 & 主栈 \\
+		\midrule[0.5pt]
+		0xFFFFFFF9 & 线程模式 & 主栈 \\
+		\midrule[0.5pt]
+		0xFFFFFFFD & 线程模式 & 进程栈 \\
+		\bottomrule[1.5pt]
+	\end{tabularx}
+\end{table}
+
+\begin{table}[htb]
+	\centering
+	\caption{EXC\_RETURN定义的中断返回行为，有浮点扩展}
+	\label{tab:exe_return_FP}
+	\begin{tabularx}{\linewidth}{XXXX}
+		\toprule[1.5pt]
+		{\heiti EXC\_RETURN} & {\heiti 返回到模式} & {\heiti 返回到栈} &
+		{\heiti 帧类型}\\
+		\midrule[1pt]
+		0xFFFFFFE1 & 处理模式 & 主栈 & 扩展\\
+		\midrule[0.5pt]
+		0xFFFFFFE9 & 线程模式 & 主栈 & 扩展\\
+		\midrule[0.5pt]
+		0xFFFFFFED & 线程模式 & 进程栈 & 扩展\\
+		\midrule[0.5pt]
+		0xFFFFFFF1 & 处理模式 & 主栈 & 基本\\
+		\midrule[0.5pt]
+		0xFFFFFFF9 & 线程模式 & 主栈 & 基本\\
+		\midrule[0.5pt]
+		0xFFFFFFFD & 线程模式 & 进程栈 & 基本\\
+		\bottomrule[1.5pt]
+	\end{tabularx}
+\end{table}
+
+在CPU接收到中断信号的，它会将8个32为寄存器压栈，包括xPSR寄存器，返回地址，LR，R12,
+R3，R2，R1和R0。这与CPU在执行函数调用时遵守的ARM Architecture Procedure Calling
+Standard(AAPCS)保持一致。在进入中断时，LR会被写入一个特殊的值\textbf{EXC\_RETURN}。
+因为返回地址和LR原本的值都已经被压栈保存起来，因此LR在中断处理时空闲出来。中断处理
+时，返回的标志就是向PC寄存器中写入EXC\_RETURN。一般情况下，写入的EXC\_RETURN就是
+LR中保存的值，也可以是从其他途径得到的值。EXC\_RETURN的取值固定且分别具有不同的含
+义，如表~\ref{tab:exe_return_noFP} 和表~\ref{tab:exe_return_FP} 所示。在
+表~\ref{tab:exe_return_FP} 中的帧类型是指浮点数扩展模式下触发中断时压入栈的寄存器
+构成的帧类型。有无浮点数支持，上述8个寄存器都会被压栈，且接下来的分析也只需要用到
+它们，因此浮点数的模式在此不做单独讨论。\cite{ARM} 
+
+以上便是Cortex M系列CPU与中断相关的硬件规定，接下来我们详细讲解eCos的分段中断实现。
+
+eCos提供一个分段中断机制。应用程序在注册中断时，可以提供两段程序，分别称为ISR（
+ImmediateService Routine）\footnote{注意与本文其他章节里的中断服务寄存器ISR区分，
+在本小节中涉及的的所有ISR均指代Immediate Service Routine。}和DSR（Delayed Service 
+Routine）。其中，ISR在中断触发之后立即被执行的（如果优先级满足条件的话），DSR则
+会被推迟执行，所有DSR的优先级低于一切ISR，所有DSR之间的优先级是同等的。\cite{ecos_isr}
+经过对eCos代码的研读分析，如果在中断触发时，ISR执行完之后，DSR因故未能执行，那么
+所有的DSR会在下一次线程切换时全部执行完毕。这样的好处是显而易见的。应用程序将必须
+立即处理的不涉及共享资源或者运行时间比较短的部分放在ISR中处理，把剩下的部分放在DSR
+里，既充分利用的中断的便利，又不牺牲程序的实时性性能。\footnote{值得一提的是，应用
+程序并没有选择使用传统的一段式中断的自由。在逻辑上，程序员只能把所有中断代码放在
+ISR中，并提交一个空的DSR来完成传统的一段式中断的行为。此时，操作系统在此因为DSR的
+处理反而会消耗相比传统一段式中断更多的CPU周期。}
+
+%Let them flow
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{ecos_isr_dsr}
+	\caption{eCos分段中断图解}
+	\label{fig:ecos_isr_dsr}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{ecos_stack}
+	\caption{eCos分段中断栈情况一览}
+	\label{fig:ecos_stack}
+\end{figure}
+
+经过对eCos内核和针对Cortex M系列CPU的HAL（Hardware Abstract Layer, 硬件抽象层）
+代码的仔细研读，我们将eCos操作系统的分段中断流程整理成图~\ref{fig:ecos_isr_dsr} 。
+各个标号位置的栈情况见图~\ref{fig:ecos_stack} 。下面我们按照图示详细剖析一遍。
+
+首先，CPU检测到中断信号，打断了当前线程。在位置0，我们可以看到主栈和进程栈同为
+空\footnote{这里忽略检测到中断信号之前的栈内的内容，且不考虑栈溢出的情况。}，且
+当前活跃栈为进程栈。从位置0到位置1，是硬件接收中断的行为，这里最主要的是保存8个
+32位寄存器（即程序上下文），将lr赋值为EXC\_RETURN，将PC定位到中断向量表项，即
+hal\_default\_interrupt\_vsr的地址，以及CONTROL.SPSEL复位，即从位置1开始，活
+跃栈切换为主栈。位置1之后的汇编代码就属于hal\_default\_interrupt\_vsr，首先将
+lr的值压栈，然后将栈顶指针减4，即让栈涨了一个字，然后执行bl指令跳转到
+hal\_deliver\_interrupt函数，因为bl指令是带返回地址的跳转至零，因此执行bl会将返
+回地址写入lr寄存器中。不过在此之前lr的值已经被压栈了，如位置2的栈情况所示。
+hal\_deliver\_interrupt是一段C++的函数。首先它完成了ISR的功能，接着会检查sched\_lock
+这个变量的值。sched\_lock是定义在eCos系统的内核部分的一个关键变量，该变量指示是
+否能进行线程调度，导致该变量为非0值的可能原因有很多，均需要CPU尽可能快的处理，因
+此在sched\_lock不为0时，DSR就会被延后执行，本次中断处理就准备收尾了。在
+图~\ref{fig:ecos_isr_dsr} 中，从位置3'开始，位置4'，5'，6'组成了一条退出中断的
+路径。在汇编代码，即hal\_default\_interrupt\_vsr的后半部分，栈顶退回一个字的大
+小，然后将栈顶的值，即进入hal\_default\_interrupt\_vsr时的lr的值，也就是进入中
+断时存入lr的EXC\_RETURN写入pc寄存器，触发一个退出中断的硬件行为。硬件将
+CONTRL.SPSEL根据EXC\_RETURN恢复为1，然后将保存的上下文恢复。本中断结束。位置6'
+与位置1的栈情况完全相同。
+
+另一方面，如果sched\_lock为0，eCos会去继续执行dsr。但是此时依然是在中断状态，如
+果将dsr直接放在hal\_deliver\_interrupt里，它的优先级依旧高于其他低优先级的中断，
+为了使所有中断的优先级高于dsr，我们需要在非中断状态执行dsr。接下来所做的复杂工作
+就是为了去非中断状态执行dsr,然后再恢复上下文回到中断触发时的状态。
+
+在判断sched\_lock为0之后，hal\_deliver\_interrupt将一个特殊的值CYGARC\_REG\_NVIC\_
+ICSR\_PENDSVSET写入icsr寄存器，将中断检测位置位，CPU检测到一个新的中断，引发进
+入中断的硬件行为。注意，这是一个中断嵌套，因为前一个中断尚未退出。类似的，硬件保
+存上下文，在lr中写入EXC\_RETURN，修改pc到中断向量表项。然后就跳转到这个中断的处
+理程序，即用汇编代码写的hal\_pendable\_svc\_vsr过程。在hal\_pendable\_svc\_vsr
+中，eCos在进程栈里伪造了一个8个字的中断帧。然后利用bx指令将lr里的值，也即是
+EXE\_RETURN写入pc寄存器，从而触发一个硬件的退出中断的行为。硬件在位置6恢复了位置3
+的上下文，包括主栈和对应的寄存器。但是，我们注意到，位置6的进程栈里多了伪造的中断帧。
+
+从位置7回来之后，hal\_deliver\_interrupt函数就结束了，C++的函数结束时，会从活跃
+栈中弹出对应内容到寄存器里，将栈空间和寄存器都还原到进入函数之前的状态。\cite{AAPCS}
+接着，CPU继续执行汇编过程hal\_default\_interrupt\_vsr的后半部分，主栈栈顶回退，
+然后出栈，向pc寄存器内写入EXC\_RETURN，触发硬件的中断返回操作。在修改CONTROL.SPSEL
+到达位置9后，活跃栈已经变成进程栈。但是此时进程栈中多了伪造的中断帧。于是硬件恢复
+的上下文就是伪造帧中的上下文，在这个上下文中，pc的值是hal\_interrupt\_end的地址，
+lr的值是hal\_interrupt\_end\_done的地址。于是CPU开始执行C++函数hal\_interrupt\_end。
+在hal\_interrupt\_end中，如果条件允许，所有dsr都会被执行。从位置10开始，CPU已经
+退出中断状态，所以在此执行的dsr可以被任意优先级的中断打断。这就符合了分段中断的设
+计初衷。接下里就是如何回到最初进入中断时的状态的问题了。
+
+在执行完dsr之后，这里进行了上下文切换，把CPU交给了其他线程。这是因为前文说过eCos
+将dsr的执行放在了线程切换时做，也只有这一个地方做。这在中断处理的时候看起来有点突
+兀，不过对实时性并没有影响。在线程切换回来以后，CPU运行至位置11，hal\_interrupt\_end
+的C++代码就执行完毕，然后退出函数，同样会恢复进入函数时状态。pc跳转到lr的值，即
+hal\_interrupt\_end\_done的地址。\cite{AAPCS}hal\_interrupt\_end\_done是一段
+非常简单的汇编，核心就是swi指令。该指令会触发一个软中断，进入中断后至位置14，在中
+断处理程序中将栈指针加32，到位置15，此时就抛弃了这个软中断进入时硬件压入的8个字，
+然后退出中断，将线程栈在位置0压入的8个字弹出至对应寄存器。在位置16，一切状态恢复如
+状态0。
+
+eCos在完成一次“中断”的过程中，实际上触发了3次中断，达到了isr立即处理，dsr延后处理
+的效果。如果一个中断的处理十分简短，甚至不用dsr，那么eCos这种中断处理方式实际上会
+延长中断处理时间。3次中断触发看似很快，但每次进入和退出中断都需要访问内存，在中断
+这个层面，内存访问的耗时是很可观的。\footnote{我的同学在一个项目中对eCos在STM3240GE
+开发板上的进入中断和退出中断的硬件耗时做过测试，其结论表明，进出中断的硬件操作对短
+中断程序的实时性影响不可忽略。将3次中断改为1次中断之后，耗时减少显著。}
+
+\section{本章小结}
+\label{sec:sum_3}
+
+本章从现有研究相对深入透彻的多线程环境出发，立足于软硬件的实现细节，分别对基本中
+断，重入中断和分段中断归纳抽象出自己的模型，并且在\uppaal 中给出了详细的构建。特别
+的，在分段中断的实现原理上，本章对eCos操作系统的内核及HAL层部分代码进行了深入分
+析，详细展示了分段中断这一硬件本身不支持，而由软件二次实现的机制。
+
+本章构建的三类中断模型是从大量的文献阅读和项目实践中总结出的，涵盖了现有的绝大多
+数中断。在遇到一个不能简单归结为这三类的中断时，也完全可以借鉴构建这三类中断时的
+思路来完成模型构建。
+
+\section{\uppaal 中的基本中断模型}
 \label{subsec:basic_uppaal}
 
 在构建中断模型之前，我们首先需要对中断场景做一些必要的简化和抽象，同时辅以合理的
@@ -203,7 +459,7 @@ Interrupt Controller，PIC）来负责中断响应和处理。PIC被连接在若
 	中断处理的时间$T$
 	\label{def:intr_time}
 	\begin{equation}
-		T = \tau_1 + \tau_2 + \tau_3
+	T = \tau_1 + \tau_2 + \tau_3
 	\end{equation}
 	
 	$\tau_1$：CPU从检测到中断信号开始到PC跳转到中断处理程序的时间。
@@ -265,17 +521,17 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 	chan intr[intr_id];
 	urgent broadcast chan prompt, resume;
 	bool ISR[intr_id] = {false, false,false,
-					false,false,false,false};
+	false,false,false,false};
 	
 	typedef int[0,N] Pri;
 	Pri get_highest_pri(){
-		meta int i;
-		for(i = 0; i < N; i++){
-			if(ISR[i]){
-				return i;
-			} 
-		}
-		return N;
+	meta int i;
+	for(i = 0; i < N; i++){
+	if(ISR[i]){
+	return i;
+	} 
+	}
+	return N;
 	}
 	\end{lstlisting}
 	\caption{基本中断模型：声明}
@@ -503,20 +759,12 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 	env_basic = env_basic();
 	
 	system intr0, intr1, intr2, intr3, intr4, 
-					intr5, intr6, env_basic;
+	intr5, intr6, env_basic;
 	\end{lstlisting}
 	\caption{基本中断模型：模型声明}
 	\label{fig:basic_model_decl}
 \end{figure}
 
-\section{带重入的中断模型}
-\label{sec:reentrant}
-
-在~\ref{subsubsec:basic_decl} 小节中，我们提到当一个中断尚未处理完成，它的下一
-个实例到来，在基本中断模型中，下一个实例将会被忽略。如果某中断的下一个实例能够抢
-占前一个实例，我们就称该中断支持重入（re-entrance）。许多中断平台现在已经支持中
-断重入，也有许多软件产品使用了中断重入这个特性。所以如果不能支持重入，那么对中断
-模型的限制就有点过分了。
 
 然后，支持重入的中断是不限定重入的次数的。这由其实现机制导致，我们将在
 ~\ref{subsec:reentrant_hardware} 小节详细讲解。但是，按照我们对基本中断模型的
@@ -526,23 +774,7 @@ CPU的检测到中断信号。我们在接下来的建模中会解释这个区�
 而求其次，规定重入次数的上限，那么状态大小就是确定的，就可以应用模型检测的理论和
 \uppaal 来建模。
 
-\subsection{重入的软硬件实现}
-\label{subsec:reentrant_hardware}
-
-重入中断的实现非常简单。它与~\ref{subsec:basic_hardware} 小节中描述的基本中断
-的通用实现基本相同。差别仅在于中断控制器的优先级判断规则。按照定义~\ref{def:pri} ，
-基本中断的抢占条件是$P_{coming} < P_{current}$，而重入中断的抢占条件则是
-$P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，即发生了自抢占，
-在中断处理程序执行结束之前，程序计数器PC又被设置到了同一段中断处理程序的入口，这
-也是重入这个术语的来源。
-
-如果我们从栈（Stack）的角度来看中断重入，会发现重入与非重入的抢占在栈的行为上是完
-全一致。在~\ref{subsec:basic_hardware} 小节中我们描述了中断抢占发生时上下文会被
-压栈。重入时栈上的行为与图~\ref{fig:stack} 完全一致。由此可见，重入的次数没有任何
-理论上的限制。在真实的硬件平台上，因为栈溢出是不允许的，重入的次数受栈大小的限制，
-然而这也是中断嵌套的层数限制，本质上与中断是否重入没有关系。
-
-\subsection{\uppaal 中的重入中断模型}
+\section{\uppaal 中的重入中断模型}
 \label{subsec:reentrant_uppaal}
 
 尽管重入中断和基本中断的实现几乎完全相同，但是由于重入这个行为与基本中断的行为大
@@ -579,13 +811,13 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 	
 	typedef int[0,N] Pri;
 	Pri get_highest_pri(){
-		meta int i;
-		for(i = 0; i < N; i++){
-			if(ISR[i]){
-				return i;
-			} 
-		}
-		return N;
+	meta int i;
+	for(i = 0; i < N; i++){
+	if(ISR[i]){
+	return i;
+	} 
+	}
+	return N;
 	}
 	\end{lstlisting}
 	\caption{重入中断模型：声明}
@@ -649,11 +881,11 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 	\centering
 	\begin{lstlisting}
 	void initClock(){
-		meta int i;
-		for(i = 0; i < M; i++){
-			intTime[i] = 0;
-			timeSinceStart[i] = 0;
-		}
+	meta int i;
+	for(i = 0; i < M; i++){
+	intTime[i] = 0;
+	timeSinceStart[i] = 0;
+	}
 	}
 	\end{lstlisting}
 	\caption{initClock函数定义}
@@ -838,232 +1070,13 @@ $P_{coming} \leq P_{current}$。在此条件下，中断可以被自身打断，
 	env = env_reentry();
 	
 	system intr0, intr1, intr2, intr3, intr4, 
-			intr5, intr6, env;   
+	intr5, intr6, env;   
 	\end{lstlisting}
 	\caption{重入中断模型：模型声明}
 	\label{fig:reentrant_model_decl}
 \end{figure}
 
-\section{分段中断模型}
-\label{sec:segment}
-
-在~\ref{subsec:intr_OS} 小节中，我们已经提到了分段中断。如图~\ref{fig:ecos_intr_exec} 所
-示的中断正是分段中断。此类中断多见于嵌入式应用场景。分段中断的出现从嵌入式开发
-的角度来讲，极大地方便了应用的开发，可以在不牺牲实时性的同时让中断完成更繁重的任务。
-这一点在开发中断驱动程序（Interrupt-driven Program）的时候极为重要。中断驱动程序
-的主要功能都是在中断中完成。如果功能比较复杂或者牵涉到与其他硬件的交互，不可避免地，
-中断处理时间会比较长。在没有分段处理的情况下，低优先级的中断的响应时间将大为增加，
-实时性无法保证。
-
-另一方面，分段中断对程序分析和验证带来了很大的困难。中断原本的不确定性就足以使任何
-针对中断程序的验证，尤其是形式化验证的工作量和难度接近或者超出现有工具和人力的极限。
-如果中断程序可以分段，且两段程序在执行上还有一些不同（例如优先级不同），那么分析的
-难度将呈指数级增长。幸运的是，如果只着眼于实时性分析，在中断分段以后两段间只有优先
-级不同的情况下，我们还是可以用近似的方法去建模和验证的。
-
-\subsection{软件的二次实现}
-\label{subsec:segment_software}
-
-在~\ref{subsec:intr_OS} 小节中，我们提到了分段中断是操作系统系统的二次实现。这也
-是为了实现实时性需求嵌入式开发程序员在硬件平台不支持分段中断的情况下做出的机智创作。
-市面上多家实时操作系统提供了分段中断的机制。在此我会着重介绍eCos操作系统的分段中断
-机制。详细了解过操作系统的实现之后，经过适当的抽象，我们可以在\uppaal 内对分段中断构
-建自动机模型。
-
-eCos是一个跨平台的操作系统，支持各类CPU和板载中断控制器。不同平台对应的汇编代码并
-不一样，在此我仅以ARM提供的Cortex M系列CPU为硬件平台讲解eCos的分段中断机制。
-
-\subsubsection{Cortex M系列CPU的中断机制}
-\label{subsubsec:cortex_m}
-
-Cortex M系列CPU采用ARMv7-M体系结构，该体系结构针对移动平台设计，在能耗上相当好的
-控制。在中断\footnote{在ARMv7-M Architecture Reference Manual中，ARM称本文所说
-的中断为异常（Exception），其中，0-15号异常为预定义好的，其处理程序也已固化在硬件
-上，16号以后的异常被称为中断（Interrupt）。这只是术语的不同，为了防止混淆，在本文
-中统称中断（Interrupt）。}控制机制上，ARMv7-M体系结构与~\ref{subsec:basic_hardware} 小
-节所述类似，也采用在栈上保存上下文，进入中断处理之后结束再恢复上下文。但是细节上有
-很多ARM平台特有的细节，我会尽量简单的描述这些细节，以便读者能够更好地理
-解~\ref{subsubsec:ecos_intr} 小节中的内容。
-
-ARMv7-M体系结构包含13个通用寄存器，R0-R12，以及3个额外的特殊寄存器。
-
-\begin{description}
-	\item[SP] 栈指针，用来指示当前活跃的栈的顶部内存位置。SP有时也被称为
-	R13。
-	\item[LR] 链接寄存器，用来保存返回链接。返回链接是指进行了一次带返回
-	的跳转指令的返回地址，通常是跳转指令的下一条指令。该寄存器的复位值为0xFFFFFFFF，
-	使用该值进行跳转返回会触发一个错误。LR寄存器在进入中断时也会更新，我们会在下
-	文描述。LR有时也被称为R14。
-	\item[PC] 程序计数器。PC有时也被称为R15。
-\end{description}
-
-在ARMv7-M体系结构中，内存中同时存在两个栈空间\pozhehao 进程栈和主栈，进程栈
-属于当前线程，主栈则是所有程序共用。尽管每个线程都有一个自己的进程栈，但是SP所指
-向的进程栈是当前进程栈。CPU内有两个特殊寄存器。
-
-\begin{description}
-	\item[PSP] 进程栈指针，永远指向当前进程栈的栈顶。
-	\item[MSP] 主栈指针，永远指向主栈栈顶。
-\end{description}
-
-SP的读取值可以是PSP的值也可以是MSP的值，即PS可以指向当前进程栈栈顶也可以指向主栈
-栈顶，这取决于专用CONTROL寄存器的SPSEL位（即第1位）的当前值。如果为CONTROL.SPSEL
-的值为0，SP指向主栈栈顶；如果CONTROL.SPSEL的值为1，SP指向进程栈栈顶。CPU有线程模
-式（Thread Mode）和处理模式（Handler Mode），在线程模式下，CONTROL.SPSEL的取值
-可以是0或1；在处理模式下，CONTROL.SPSEL的读取值永远为0。换句话说，在线程模式下，
-SP可以指向进程栈或主栈，但是在处理模式下，SP永远指向主栈。CPU在接收中断时会进入处
-理模式。在处理模式中，CPU可以使用psp和msp在汇编代码里直接操作对应的栈。
-
-\begin{table}[htb]
-	\centering
-	\caption{EXC\_RETURN定义的中断返回行为，无浮点扩展}
-	\label{tab:exe_return_noFP}
-	\begin{tabularx}{\linewidth}{XXX}
-		\toprule[1.5pt]
-		{\heiti EXC\_RETURN} & {\heiti 返回到模式} & {\heiti 返回到栈}\\
-		\midrule[1pt]
-		0xFFFFFFF1 & 处理模式 & 主栈 \\
-		\midrule[0.5pt]
-		0xFFFFFFF9 & 线程模式 & 主栈 \\
-		\midrule[0.5pt]
-		0xFFFFFFFD & 线程模式 & 进程栈 \\
-		\bottomrule[1.5pt]
-	\end{tabularx}
-\end{table}
-
-\begin{table}[htb]
-	\centering
-	\caption{EXC\_RETURN定义的中断返回行为，有浮点扩展}
-	\label{tab:exe_return_FP}
-	\begin{tabularx}{\linewidth}{XXXX}
-		\toprule[1.5pt]
-		{\heiti EXC\_RETURN} & {\heiti 返回到模式} & {\heiti 返回到栈} &
-		{\heiti 帧类型}\\
-		\midrule[1pt]
-		0xFFFFFFE1 & 处理模式 & 主栈 & 扩展\\
-		\midrule[0.5pt]
-		0xFFFFFFE9 & 线程模式 & 主栈 & 扩展\\
-		\midrule[0.5pt]
-		0xFFFFFFED & 线程模式 & 进程栈 & 扩展\\
-		\midrule[0.5pt]
-		0xFFFFFFF1 & 处理模式 & 主栈 & 基本\\
-		\midrule[0.5pt]
-		0xFFFFFFF9 & 线程模式 & 主栈 & 基本\\
-		\midrule[0.5pt]
-		0xFFFFFFFD & 线程模式 & 进程栈 & 基本\\
-		\bottomrule[1.5pt]
-	\end{tabularx}
-\end{table}
-
-在CPU接收到中断信号的，它会将8个32为寄存器压栈，包括xPSR寄存器，返回地址，LR，R12,
-R3，R2，R1和R0。这与CPU在执行函数调用时遵守的ARM Architecture Procedure Calling
-Standard(AAPCS)保持一致。在进入中断时，LR会被写入一个特殊的值\textbf{EXC\_RETURN}。
-因为返回地址和LR原本的值都已经被压栈保存起来，因此LR在中断处理时空闲出来。中断处理
-时，返回的标志就是向PC寄存器中写入EXC\_RETURN。一般情况下，写入的EXC\_RETURN就是
-LR中保存的值，也可以是从其他途径得到的值。EXC\_RETURN的取值固定且分别具有不同的含
-义，如表~\ref{tab:exe_return_noFP} 和表~\ref{tab:exe_return_FP} 所示。在
-表~\ref{tab:exe_return_FP} 中的帧类型是指浮点数扩展模式下触发中断时压入栈的寄存器
-构成的帧类型。有无浮点数支持，上述8个寄存器都会被压栈，且接下来的分析也只需要用到
-它们，因此浮点数的模式在此不做单独讨论。\cite{ARM} 
-
-\subsubsection{eCos的分段中断机制} 
-\label{subsubsec:ecos_intr}
-
-eCos提供一个分段中断机制。应用程序在注册中断时，可以提供两段程序，分别称为ISR（
-ImmediateService Routine）\footnote{注意与本文其他章节里的中断服务寄存器ISR区分，
-在本小节中涉及的的所有ISR均指代Immediate Service Routine。}和DSR（Delayed Service 
-Routine）。其中，ISR在中断触发之后立即被执行的（如果优先级满足条件的话），DSR则
-会被推迟执行，所有DSR的优先级低于一切ISR，所有DSR之间的优先级是同等的。\cite{ecos_isr}
-经过对eCos代码的研读分析，如果在中断触发时，ISR执行完之后，DSR因故未能执行，那么
-所有的DSR会在下一次线程切换时全部执行完毕。这样的好处是显而易见的。应用程序将必须
-立即处理的不涉及共享资源或者运行时间比较短的部分放在ISR中处理，把剩下的部分放在DSR
-里，既充分利用的中断的便利，又不牺牲程序的实时性性能。\footnote{值得一提的是，应用
-程序并没有选择使用传统的一段式中断的自由。在逻辑上，程序员只能把所有中断代码放在
-ISR中，并提交一个空的DSR来完成传统的一段式中断的行为。此时，操作系统在此因为DSR的
-处理反而会消耗相比传统一段式中断更多的CPU周期。}
-
-%Let them flow
-\begin{figure}
-	\centering
-	\includegraphics[width=\textwidth]{ecos_isr_dsr}
-	\caption{eCos分段中断图解}
-	\label{fig:ecos_isr_dsr}
-\end{figure}
-
-\begin{figure}
-	\centering
-	\includegraphics[width=\textwidth]{ecos_stack}
-	\caption{eCos分段中断栈情况一览}
-	\label{fig:ecos_stack}
-\end{figure}
-
-经过对eCos内核和针对Cortex M系列CPU的HAL（Hardware Abstract Layer, 硬件抽象层）
-代码的仔细研读，我们将eCos操作系统的分段中断流程整理成图~\ref{fig:ecos_isr_dsr} 。
-各个标号位置的栈情况见图~\ref{fig:ecos_stack} 。下面我们按照图示详细剖析一遍。
-
-首先，CPU检测到中断信号，打断了当前线程。在位置0，我们可以看到主栈和进程栈同为
-空\footnote{这里忽略检测到中断信号之前的栈内的内容，且不考虑栈溢出的情况。}，且
-当前活跃栈为进程栈。从位置0到位置1，是硬件接收中断的行为，这里最主要的是保存8个
-32位寄存器（即程序上下文），将lr赋值为EXC\_RETURN，将PC定位到中断向量表项，即
-hal\_default\_interrupt\_vsr的地址，以及CONTROL.SPSEL复位，即从位置1开始，活
-跃栈切换为主栈。位置1之后的汇编代码就属于hal\_default\_interrupt\_vsr，首先将
-lr的值压栈，然后将栈顶指针减4，即让栈涨了一个字，然后执行bl指令跳转到
-hal\_deliver\_interrupt函数，因为bl指令是带返回地址的跳转至零，因此执行bl会将返
-回地址写入lr寄存器中。不过在此之前lr的值已经被压栈了，如位置2的栈情况所示。
-hal\_deliver\_interrupt是一段C++的函数。首先它完成了ISR的功能，接着会检查sched\_lock
-这个变量的值。sched\_lock是定义在eCos系统的内核部分的一个关键变量，该变量指示是
-否能进行线程调度，导致该变量为非0值的可能原因有很多，均需要CPU尽可能快的处理，因
-此在sched\_lock不为0时，DSR就会被延后执行，本次中断处理就准备收尾了。在
-图~\ref{fig:ecos_isr_dsr} 中，从位置3'开始，位置4'，5'，6'组成了一条退出中断的
-路径。在汇编代码，即hal\_default\_interrupt\_vsr的后半部分，栈顶退回一个字的大
-小，然后将栈顶的值，即进入hal\_default\_interrupt\_vsr时的lr的值，也就是进入中
-断时存入lr的EXC\_RETURN写入pc寄存器，触发一个退出中断的硬件行为。硬件将
-CONTRL.SPSEL根据EXC\_RETURN恢复为1，然后将保存的上下文恢复。本中断结束。位置6'
-与位置1的栈情况完全相同。
-
-另一方面，如果sched\_lock为0，eCos会去继续执行dsr。但是此时依然是在中断状态，如
-果将dsr直接放在hal\_deliver\_interrupt里，它的优先级依旧高于其他低优先级的中断，
-为了使所有中断的优先级高于dsr，我们需要在非中断状态执行dsr。接下来所做的复杂工作
-就是为了去非中断状态执行dsr,然后再恢复上下文回到中断触发时的状态。
-
-在判断sched\_lock为0之后，hal\_deliver\_interrupt将一个特殊的值CYGARC\_REG\_NVIC\_
-ICSR\_PENDSVSET写入icsr寄存器，将中断检测位置位，CPU检测到一个新的中断，引发进
-入中断的硬件行为。注意，这是一个中断嵌套，因为前一个中断尚未退出。类似的，硬件保
-存上下文，在lr中写入EXC\_RETURN，修改pc到中断向量表项。然后就跳转到这个中断的处
-理程序，即用汇编代码写的hal\_pendable\_svc\_vsr过程。在hal\_pendable\_svc\_vsr
-中，eCos在进程栈里伪造了一个8个字的中断帧。然后利用bx指令将lr里的值，也即是
-EXE\_RETURN写入pc寄存器，从而触发一个硬件的退出中断的行为。硬件在位置6恢复了位置3
-的上下文，包括主栈和对应的寄存器。但是，我们注意到，位置6的进程栈里多了伪造的中断帧。
-
-从位置7回来之后，hal\_deliver\_interrupt函数就结束了，C++的函数结束时，会从活跃
-栈中弹出对应内容到寄存器里，将栈空间和寄存器都还原到进入函数之前的状态。\cite{AAPCS}
-接着，CPU继续执行汇编过程hal\_default\_interrupt\_vsr的后半部分，主栈栈顶回退，
-然后出栈，向pc寄存器内写入EXC\_RETURN，触发硬件的中断返回操作。在修改CONTROL.SPSEL
-到达位置9后，活跃栈已经变成进程栈。但是此时进程栈中多了伪造的中断帧。于是硬件恢复
-的上下文就是伪造帧中的上下文，在这个上下文中，pc的值是hal\_interrupt\_end的地址，
-lr的值是hal\_interrupt\_end\_done的地址。于是CPU开始执行C++函数hal\_interrupt\_end。
-在hal\_interrupt\_end中，如果条件允许，所有dsr都会被执行。从位置10开始，CPU已经
-退出中断状态，所以在此执行的dsr可以被任意优先级的中断打断。这就符合了分段中断的设
-计初衷。接下里就是如何回到最初进入中断时的状态的问题了。
-
-在执行完dsr之后，这里进行了上下文切换，把CPU交给了其他线程。这是因为前文说过eCos
-将dsr的执行放在了线程切换时做，也只有这一个地方做。这在中断处理的时候看起来有点突
-兀，不过对实时性并没有影响。在线程切换回来以后，CPU运行至位置11，hal\_interrupt\_end
-的C++代码就执行完毕，然后退出函数，同样会恢复进入函数时状态。pc跳转到lr的值，即
-hal\_interrupt\_end\_done的地址。\cite{AAPCS}hal\_interrupt\_end\_done是一段
-非常简单的汇编，核心就是swi指令。该指令会触发一个软中断，进入中断后至位置14，在中
-断处理程序中将栈指针加32，到位置15，此时就抛弃了这个软中断进入时硬件压入的8个字，
-然后退出中断，将线程栈在位置0压入的8个字弹出至对应寄存器。在位置16，一切状态恢复如
-状态0。
-
-eCos在完成一次“中断”的过程中，实际上触发了3次中断，达到了isr立即处理，dsr延后处理
-的效果。如果一个中断的处理十分简短，甚至不用dsr，那么eCos这种中断处理方式实际上会
-延长中断处理时间。3次中断触发看似很快，但每次进入和退出中断都需要访问内存，在中断
-这个层面，内存访问的耗时是很可观的。\footnote{我的同学在一个项目中对eCos在STM3240GE
-开发板上的进入中断和退出中断的硬件耗时做过测试，其结论表明，进出中断的硬件操作对短
-中断程序的实时性影响不可忽略。将3次中断改为1次中断之后，耗时减少显著。}
-
-\subsection{\uppaal 中的分段中断模型}
+\section{\uppaal 中的分段中断模型}
 \label{subsec:segment_uppaal}
 
 在深入了解分段中断的实现机制之后，我们就可以在\uppaal 中构建分段中断的模型。在此之
@@ -1096,17 +1109,17 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 	chan intr[intr_id];
 	urgent broadcast chan prompt, resume;
 	bool ISR[intr_id] = {false, false,false,
-					false,false,false,false};
+	false,false,false,false};
 	
 	typedef int[0,N] Pri;
 	Pri get_highest_pri(){
-		meta int i;
-		for(i = 0; i < N; i++){
-			if(ISR[i]){
-				return i;
-			} 
-		}
-		return N;
+	meta int i;
+	for(i = 0; i < N; i++){
+	if(ISR[i]){
+	return i;
+	} 
+	}
+	return N;
 	}
 	\end{lstlisting}
 	\caption{分段中断模型：声明}
@@ -1340,20 +1353,8 @@ eCos在完成一次“中断”的过程中，实际上触发了3次中断，达
 	env = env_section();
 	
 	system intr0, intr1, intr2, intr3, intr4, 
-			intr5, intr6, env;    
+	intr5, intr6, env;    
 	\end{lstlisting}
 	\caption{重入中断模型：模型声明}
 	\label{fig:sec_model_decl}
 \end{figure}
-
-\section{本章小结}
-\label{sec:sum_3}
-
-本章从现有研究相对深入透彻的多线程环境出发，立足于软硬件的实现细节，分别对基本中
-断，重入中断和分段中断归纳抽象出自己的模型，并且在\uppaal 中给出了详细的构建。特别
-的，在分段中断的实现原理上，本章对eCos操作系统的内核及HAL层部分代码进行了深入分
-析，详细展示了分段中断这一硬件本身不支持，而由软件二次实现的机制。
-
-本章构建的三类中断模型是从大量的文献阅读和项目实践中总结出的，涵盖了现有的绝大多
-数中断。在遇到一个不能简单归结为这三类的中断时，也完全可以借鉴构建这三类中断时的
-思路来完成模型构建。
