@@ -563,10 +563,366 @@ $\gamma_b$，$\gamma_r$和$\gamma_s$。有以下定义：
 		\item $E\subseteq L\times \varPhi(V)\times \varSigma \times 2^V
 		\times L$，表示边的有限集。一条边$(l,\delta,a,\rho,l')\subseteq E$，或者
 		$(l\stackrel{\delta,a,\varphi}{\longrightarrow}l')$，表示从位置$l$到$l'$的，
-		标签为$a$，约束为$\delta'$，变量修改为$\varphi \in 2^V$的一条变迁。
+		标签为$a$，条件为$\delta'$，变量修改为$\varphi \in 2^V$的一条变迁。
 		\item $Inv:L\longrightarrow \varPhi(V)$，表示每个位置上的变量约束。
 	\end{itemize}
 \end{definition}
+
+对于给定的中断系统$\Delta=(\varGamma, n)$，我们定义$|\varGamma|$对动作，分别
+记作$intr[i]!$和$intr[i]?$，$i\in N$且$i\in[0,|\varGamma|-1]$，定义两对动作
+$prompt!$和$prompt?$，$resume!$和$resume?$，来表示时间自动机之间的同步变迁。
+我们定义布尔数组\footnote{即有界整数数组，整数的界为\{0,1\}。}$ISR[|\varGamma|]$
+来表达时间自动机之间利用共享变量达到的异步变迁。为了方便，我们定义一个ISR数组上的
+操作$get\_highest\_pri()$，该操作的是将ISR数组最左边的值为True的元素的下标返回。
+
+针对每个中断，显然我们需要一个时钟来刻画其运行的时间。然而，我们同样在意从中断触
+发开始的中断响应耗时，在做实时性分析，尤其是截止时间分析的时候，中断响应耗时是一
+个非常重要的指标。因此，针对每一个中断，我们在建模时包含两个时钟$intTime$和
+$timeSinceStart$，分别指示中断已经运行的时间和中断响应耗时。
+
+接下来，对给定的中断系统$\Delta=(\varGamma, n)$，我们给出其时间自动机网络。
+
+对一个中断$\gamma=\gamma_b=(id, exeTime)\in\varGamma$，其时间自动机如图
+\ref{fig:interrupt_basic} 所示。位置及变迁相关的定义参见表
+\ref{tab:basic_intr_loc}\footnote{注意，在时钟导数一栏，因为时钟导数的取值范围
+为$\{0,1\}$，因此这里只列出导数为0的时钟，下同。}和表~\ref{tab:basic_intr_mov}。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\textwidth]{Interrupt_basic}
+	\caption{基本中断}
+	\label{fig:interrupt_basic}
+\end{figure}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
+	\caption{基本中断：位置}
+	\label{tab:basic_intr_loc}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 暂停时钟} & {\heiti 变量约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{4}{c}{续表~\thetable\hskip1em 基本中断模板：位置}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 暂停时钟} & {\heiti 变量约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{4}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & intTime，timeSinceStart & ISR对应位为false & 初始位置，当前没有该中断\\
+	\midrule[0.5pt]
+	Acknowledge & 所有时钟 & ISR对应位为true & 中断控制器接收到中断信号\\
+	\midrule[0.5pt]
+	Wait & intTime & ISR对应位为true & 当前有优先级更高的中断在运行，本中断等待。\\
+	\midrule[0.5pt]
+	Auxiliary1 & 所有时钟 & ISR对应位为true & 为表达Wait和Acknowledge到On的完整语义
+	设置的辅助位置\\
+	\midrule[0.5pt]
+	On & & intTime不超过exeTime，ISR对应位为true & 中断正在被处理 \\
+	\midrule[0.5pt]
+	Suspend & intTime & ISR对应位为true & 中断被更高优先级的中断抢占CPU \\ 
+	\midrule[0.5pt]
+	Auxiliary2 & 所有时钟 & ISR对应位为false & 为表达On到Off的完整语义设置的辅助位置\\
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
+	\caption{基本中断：变迁 }
+	\label{tab:basic_intr_mov}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 标签} & 
+	{\heiti 变量修改} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{6}{c}{续表~\thetable\hskip1em 基本中断模板：变迁}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 标签} & 
+	{\heiti 变量修改} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{6}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & Acknowledge & & intr[id]? & ISR对应位置位，时钟清零 & 中断控
+	制器接收到中断信号\\
+	\midrule[0.5pt]
+	Acknowledge & Wait & 本中断优先级不是最高 & & & 优先级不是最高，本中断等待\\
+	\midrule[0.5pt]
+	Wait & Auxiliary1 & 本中断优先级最高 & resume? & &  高优先级的中断执行完
+	毕，本中断得到CPU\\
+	\midrule[0.5pt]
+	Wait & Wait & & intr[id]? & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	Acknowledge & Auxiliary1 & 本中断优先级最高 & & & 本中断优先级最高，准备
+	执行\\
+	\midrule[0.5pt]
+	Auxiliary1 & On & & prompt! & & 当前中断获得CPU，打断其他正在被处
+	理的中断\\
+	\midrule[0.5pt]
+	On & Suspend & & prompt? & & 当前中断被更高优先级的中断打断\\
+	\midrule[0.5pt]
+	On & On & & intr[id]? & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	Suspend & On & 本中断优先级最高 & resume? & & 高优先级的中断执行完毕，本
+	中断得到CPU\\
+	\midrule[0.5pt]
+	Supend & Suspend & & intr[id]? & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	On & Auxiliary2 & 中断处理时间达到预设 & & ISR对应位复位 & 中断执行结束\\
+	\midrule[0.5pt]
+	Auxiliary2 & Off & & resume! & 时钟清零 & 通知其他中断获取CPU\\
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+对一个中断$\gamma=\gamma_r=(id, intTime, n)\in\varGamma$，因为$n$的取值会涉及
+到自动机的位置及变迁，因此无法对一个参数化的$n$构造自动机。在此，我们取$n=3$，定
+义变量current指示当前占有CPU的中断实例，并重新定义3个时钟intTime[3]分别刻画该中
+断3个实例的执行时间，时间自动机如图~\ref{fig:interrupt_reentrant} 所示。位置及
+变迁相关的定义参见表~\ref{tab:reentrant_intr_loc}和表~\ref{tab:reentrant_intr_mov}。
+当$n$取其他值时，模型类似。
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
+	\caption{重入中断：位置}
+	\label{tab:reentrant_intr_loc}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 暂停时钟} & {\heiti 变量约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{4}{c}{续表~\thetable\hskip1em 重入中断：位置}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 暂停时钟} & {\heiti 变量约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{4}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & intTime时钟组，timeSinceStart & ISR对应位为false & 初始位置，当前没
+	有该中断\\
+	\midrule[0.5pt]
+	Acknowledge & 所有时钟 & ISR对应位为true & 中断控制器接收到中断信号\\
+	\midrule[0.5pt]
+	Wait & intTime时钟组 & ISR对应位为true & 当前有优先级更高的中断
+	在运行，本中断等待。\\
+	\midrule[0.5pt]
+	Auxiliary1 & 所有时钟 & ISR对应位为true & 为表达Wait和Acknowledge到On\_1
+	的语义设置的辅助位置\\
+	\midrule[0.5pt]
+	On\_1 & intTime[1], intTime[2] & intTime[0]不超过exeTime，ISR对应位为true & 
+	中断正在被处理 \\
+	\midrule[0.5pt]
+	On\_2 & intTime[0], intTime[1] & intTime[1]不超过exeTime，ISR对应位为true & 
+	中断被重入一次，正在被处理 \\
+	\midrule[0.5pt]
+	On\_3 & intTime[0], intTime[1] & intTime[2]不超过exeTime，ISR对应位为true & 
+	中断被重入两次，正在被处理 \\
+	\midrule[0.5pt]
+	Suspend & intTime & ISR对应位为true & 中断被更高优先级抢占CPU \\ 
+	\midrule[0.5pt]
+	Auxiliary2 & 所有时钟 & ISR对应位为false & 为表达On\_1到Off的完整语义设置
+	的辅助位置\\
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
+	\caption{重入中断：变迁 }
+	\label{tab:reentrant_intr_mov}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 标签} & 
+	{\heiti 变量修改} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{6}{c}{续表~\thetable\hskip1em 重入中断：变迁}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 标签} & 
+	{\heiti 变量修改} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{6}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & Acknowledge & & intr[id]? & ISR对应位置位，时钟清零 & 中断控制器接
+	收到中断信号\\
+	\midrule[0.5pt]
+	Acknowledge & Wait & 本中断优先级不是最高 & & & 当前有更高优先级的中断存
+	在，本中断等待\\
+	\midrule[0.5pt]
+	Wait & Auxiliary1 & 本中断优先级最高 & resume? & &  高优先级的中断执行完毕，
+	本中断得到CPU\\
+	\midrule[0.5pt]
+	Wait & Wait & & intr[id]? & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	Acknowledge & Auxiliary1 & 本中断优先级最高 & & & 本中断优先级最高，准备
+	执行\\
+	\midrule[0.5pt]
+	Auxiliary1 & On\_1 & & prompt! & & 当前中断获得CPU，打断其他正在被处
+	理的中断\\
+	\midrule[0.5pt]
+	On\_1 & Suspend & & prompt? & & 当前中断被更高优先级的中断打断\\
+	\midrule[0.5pt]
+	On\_1 & On\_2 & & intr[id]? & current增加1 & 发生第一次重入\\
+	\midrule[0.5pt]
+	On\_2 & Suspend & & prompt? & & 当前中断被更高优先级的中断打断\\
+	\midrule[0.5pt]
+	On\_2 & On\_3 & & intr[id]? & current增加1 & 发生第二次重入\\
+	\midrule[0.5pt]
+	On\_2 & On\_1 & intTime[1]达到exeTime & & current减少1 & 第一次重入处理完毕\\
+	\midrule[0.5pt]
+	On\_3 & Suspend & & prompt? & & 当前中断被更高优先级的中断打断\\
+	\midrule[0.5pt]
+	On\_3 & On\_3 & & intr[id]? &  & 忽略以后的本中断实例\\
+	\midrule[0.5pt]
+	On\_3 & On\_2 & intTime[2]达到exeTime & & current减少1 & 第二次重入处理完毕\\
+	\midrule[0.5pt]
+	Suspend & On\_1 & 本中断优先级最高 & resume? & & 高优先级的中断执
+	行完毕，本中断得到CPU\\
+	\midrule[0.5pt]
+	Suspend & On\_2 & 本中断优先级最高 & resume? & & 高优先级的中断执
+	行完毕，本中断得到CPU\\
+	\midrule[0.5pt]
+	Suspend & On\_3 & 本中断优先级最高 & resume? & & 高优先级的中断执
+	行完毕，本中断得到CPU\\
+	\midrule[0.5pt]
+	Supend & Suspend & & intr[id]? & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	On\_1 & Auxiliary2 & intTime[0]达到exeTime & & ISR对应位复位 & 中断执行结束\\
+	\midrule[0.5pt]
+	Auxiliary2 & Off & & resume! & 时钟清零 & 通知其他中断获取CPU\\
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{Interrupt_reentry}
+	\caption{重入中断}
+	\label{fig:interrupt_reentrant}
+\end{figure}
+
+对一个中断$\gamma=\gamma_s=(id, exeTime\_i, exeTime\_d)\in\varGamma$，其时间自
+动机如图~\ref{fig:interrupt_segment} 所示。位置及变迁相关的定义参见表
+\ref{tab:sec_intr_loc}和表~\ref{tab:sec_intr_mov}。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{Interrupt_section}
+	\caption{分段中断}
+	\label{fig:interrupt_segment}
+\end{figure}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
+	\caption{分段中断：位置}
+	\label{tab:sec_intr_loc}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 暂停时钟} & {\heiti 变量约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{4}{c}{续表~\thetable\hskip1em 分段中断：位置}\\
+	\toprule[1.5pt]
+	{\heiti 名称} & {\heiti 暂停时钟} & {\heiti 变量约束} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{4}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & intTime和timeSinceStart & ISR对应位为false & 初始位置，当前没有
+	该中断\\
+	\midrule[0.5pt]
+	Acknowledge & 所有时钟 & ISR对应位为true & 中断控制器接收中断信号\\
+	\midrule[0.5pt]
+	Wait & intTime & ISR对应位为true & 当前有优先级更高的中断在运行，本中断
+	等待。\\
+	\midrule[0.5pt]
+	Auxiliary1 & 所有时钟 & ISR对应位为true & 为表达Wait和Acknowledge到On
+	的语义设置的辅助位置\\
+	\midrule[0.5pt]
+	On\_i & & intTime不超过exeTime\_i，ISR对应位为true & 中断紧急处理分段
+	正在被处理 \\
+	\midrule[0.5pt]
+	Suspend\_i & intTime & ISR对应位为true & 中断紧急处理分段被更高
+	优先级的中断抢
+	占CPU \\ 
+	\midrule[0.5pt]
+	Auxiliary2 & 所有时钟 & ISR对应位为false & 为表达On\_i到和On\_d和
+	Suspend\_d的完整语义设置的辅助位置\\
+	\midrule[0.5pt]
+	On\_d & & intTime不超过exeTime\_d，ISR对应位为false & 中断推迟处理分
+	段正在被处理 \\
+	\midrule[0.5pt]
+	Suspend\_d & intTime & ISR对应位为false & 中断推迟处理分段被抢
+	占CPU \\ 
+	\bottomrule[1.5pt]
+\end{longtabu}
+
+\begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
+	\caption{分段中断：变迁 }
+	\label{tab:sec_intr_mov}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 标签} & 
+	{\heiti 变量修改} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endfirsthead
+	\multicolumn{6}{c}{续表~\thetable\hskip1em 分段中断：变迁}\\
+	\toprule[1.5pt]
+	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 标签} & 
+	{\heiti 变量修改} & {\heiti 含义}\\
+	\midrule[1pt]
+	\endhead
+	\hline
+	\multicolumn{6}{r}{续下页}
+	\endfoot
+	\endlastfoot
+	Off & Acknowledge & & intr[id]? & ISR对应位置位，时钟清零 & 中断
+	控制器接收到中断信号\\
+	\midrule[0.5pt]
+	Acknowledge & Wait & 本中断优先级不是最高 & & & 当前有更高优先级的中断
+	存在，本中断等待\\
+	\midrule[0.5pt]
+	Wait & Auxiliary1 & 本中断优先级最高 & resume? & &  高优先级
+	的中断执行完毕，本中断得到CPU\\
+	\midrule[0.5pt]
+	Wait & Wait & & intr[id]? & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	Acknowledge & Auxiliary1 & 本中断优先级最高 & & & 本中断优先级最高，
+	准备\\
+	\midrule[0.5pt]
+	Auxiliary1 & On\_i & & prompt! & & 当前中断获得CPU，打断其他正
+	在被处理的中断\\
+	\midrule[0.5pt]
+	On\_i & Suspend\_i & & prompt? & & 当前中断的紧急处理分段被
+	更高优先级的中断打断\\
+	\midrule[0.5pt]
+	On\_i & On\_i & & intr[id]? & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	On\_i & Auxiliary2 & intTime达到exeTime\_i & & ISR对应位复位，intTime
+	时钟清零 & 紧急处理分段完成，准备执行推迟处理分段\\
+	\midrule[0.5pt]
+	Suspend\_i & On\_i & 本中断优先级最高 & resume? & & 高优先级
+	的中断执行完毕，本中断得到CPU\\
+	\midrule[0.5pt]
+	Supend\_i & Suspend\_i & & intr[id]? & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	Auxiliary2 & On\_d & 当前没有任何中断的紧急处理分段 & & & 开始执行推迟
+	处理分段\\
+	\midrule[0.5pt]
+	Auxiliary2 & Suspend\_d & 当前有其他中断 & resume! & & 让出CPU\\
+	\midrule[0.5pt]
+	On\_d & Suspend\_d & & prompt? & & 其他中断触发，抢占CPU\\
+	\midrule[0.5pt]
+	On\_d & On\_d & & intr[id]? & & 忽略本中断的其他实例\\
+	\midrule[0.5pt]
+	On\_d & Off & intTime达到exeTime\_d & resume! & 所有时钟清零 & 
+	本中断结束，让出CPU\\
+	\midrule[0.5pt]
+	Suspend\_d & On\_d & 当前没有任何中断的紧急处理分段 & resume? & & 所有中断的紧急
+	处理分段结束\\
+	\midrule[0.5pt]
+	Suspend\_d & Suspend\_d & & intr[id]? & & 忽略本中断的其他实例\\
+	\bottomrule[1.5pt]
+\end{longtabu}
 
 \section{本章小结}
 \label{sec:sum_3}
@@ -580,883 +936,5 @@ $\gamma_b$，$\gamma_r$和$\gamma_s$。有以下定义：
 数中断。在遇到一个不能简单归结为这三类的中断时，也完全可以借鉴构建这三类中断时的
 思路来完成模型构建。
 
-\section{\uppaal 中的基本中断模型}
-\label{subsec:basic_uppaal}
 
-除了中断处理时间$T$，我们还应该关心另一个时间 \pozhehao 中断响应耗时$t^\prime$。
-注意定义~\ref{def:intr_last} 中开始时刻是中断控制器接收到中断信号的时刻而不是
-CPU的检测到中断信号。我们在接下来的建模中会解释这个区别。
 
-\begin{definition}
-	中断响应耗时$t^\prime$指从中断控制器收到中断信号时刻开始到当前时刻消耗的时间。
-	\label{def:intr_last}
-\end{definition}
-
-以上只描述了~\ref{subsec:basic_hardware} 节中的中断向量表中的内容，模型中还需
-要加入中断控制器的内容。得益于\uppaal 的模块同步机制，中断控制的机制可以利用中断模
-型间的通信来完成。虽然这样的建模与硬件实现有着本质上的不同，中断不再受到一个管理
-者实体控制，而是根据一些规则实行了“民主协商自治”。但是，由于“自治”的规则与管理控
-制的规则完全相同，因此实现的效果是相同的。
-
-在这里，我们还需要对中断优先级的抢占规则进行进一步的明确。首先我们定义中断优先级
-的表示。如定义~\ref{def:pri} 所示，当且仅当$P_{coming} < P_{current}$，发生抢
-占。
-
-\begin{definition}
-	中断优先级$P$，表示中断优先级的数值，范围为自然数集$\mathbb{N}$,数值越小，
-	优先级越高。$P_{current}$表示当前占据CPU的中断的优先级。$P_{coming}$表示当
-	前触发的中断的优先级。
-	\label{def:pri}
-\end{definition}
-
-至此，我们可以在\uppaal 中构建基本中断的模型了。按照~\ref{sec:model_combine} 节
-中介绍的顺序，现在分别展示模型的各个部分。
-
-\subsubsection{声明}
-\label{subsubsec:basic_decl}
-
-\begin{figure}[H]
-	\centering
-	\begin{lstlisting}
-	const int N = 7;
-	typedef int[0, N-1] intr_id; 
-	chan intr[intr_id];
-	urgent broadcast chan prompt, resume;
-	bool ISR[intr_id] = {false, false,false,
-	false,false,false,false};
-	
-	typedef int[0,N] Pri;
-	Pri get_highest_pri(){
-	meta int i;
-	for(i = 0; i < N; i++){
-	if(ISR[i]){
-	return i;
-	} 
-	}
-	return N;
-	}
-	\end{lstlisting}
-	\caption{基本中断模型：声明}
-	\label{fig:basic_decl}
-\end{figure}
-
-如图~\ref{fig:basic_decl} 所示，第1行定义了中断优先级的总数，代码中的数字只是
-一个例子。第2行定义了一个数据类型，它的作用就如它的名字一样，中断ID。同时，它也
-是中断的优先级，数字越小，优先级越高。优先级最高的是0号中断。接下来定义信道，第
-3行定义了一组通信信道，分别对应每个中断。第4行定义了两个广播信道。普通信道的信号
-只能有一个发送者，一个接收者；广播信道则有一个发送者和多个接收者。普通信道的作用
-是用于环境触发特定中断，而广播信道就用来实现抢占，或者由被抢占重新占有CPU的效果。
-第5行定义了一个布尔变量数组，模拟ISR（Interrupt Service Register)寄存器。这个
-寄存器通常是中断控制器的重要组成部分，在不同硬件平台上有不同的名字，甚至可能代表
-了多个寄存器。它的作用指示当前有哪几个中断需要处理，包含正在处理的中断。如果某一
-个中断尚未处理结束，即该寄存器某一位置位时，同一中断的下一个实例又触发了，在基本
-中断模型中，会被忽略。第8-17行定义了一个函数用来获取当前存在的优先级最高的中断的
-优先级（或者说ID）。但是，如果ISR数组里的值都是False，即当前没有任意一个中断需要
-处理，那么该函数返回N。优先级N不对应任何一个中断，我们可以认为优先级N对应的是普
-通代码。
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.9\textwidth]{Interrupt_basic}
-	\caption{基本中断:状态机}
-	\label{fig:interrupt_basic}
-\end{figure}
-
-\subsubsection{基本中断模板}
-\label{subsubsec:basic_intr}
-
-基本中断的状态机如图~\ref{fig:interrupt_basic} 所示，在这个状态机的状态在\uppaal 
-中称为位置（Location），以便于整个模型的状态相区分。该模板的内部声明、参数、位置
-和变迁的说明分别如表~\ref{tab:basic_intr_decl}，表~\ref{tab:basic_intr_para}，
-表~\ref{tab:basic_intr_loc}，表~\ref{tab:basic_intr_mov} 所示。这里，我们定义
-
-\begin{definition}
-	\label{def:act_intr_time}
-	中断实际处理时间$t$，指从CPU接收到本中断信号开始到当前时刻的时间。
-\end{definition}
-
-\begin{table}[htb]
-	\centering
-	\caption{基本中断模板：内部声明}
-	\label{tab:basic_intr_decl}
-	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
-		\toprule[1.5pt]
-		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
-		\midrule[1pt]
-		intTime & clock & 中断实际处理时间$t$ \\
-		\midrule[0.5pt]
-		timeSinceStart & clock & 中断响应耗时$t^\prime$ \\
-		\bottomrule[1.5pt]
-	\end{tabularx}
-\end{table}
-
-\begin{table}[htb]
-	\centering
-	\caption{基本中断模板：参数}
-	\label{tab:basic_intr_para}
-	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
-		\toprule[1.5pt]
-		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
-		\midrule[1pt]
-		id & int & 中断号，也是中断优先级 \\
-		\midrule[0.5pt]
-		exeTime & int & 中断处理时间$T$ \\
-		\bottomrule[1.5pt]
-	\end{tabularx}
-\end{table}
-
-%\begin{table}[!htb]
-%	\centering
-%	\caption{基本中断模板：位置}
-%	\label{tab:basic_intr_loc}
-%	\begin{tabularx}{\linewidth}{p{5em}p{5em}p{13em}X}
-%		\toprule[1.5pt]
-%		{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
-%		\midrule[1pt]
-%		Off & 初始位置 & intTime和timeSinceStart保持静止，ISR对应位为false & 
-%		初始位置，当前没有该中断\\
-%		\midrule[0.5pt]
-%		Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
-%		\midrule[0.5pt]
-%		Wait & & intTime保持静止，ISR对应位为true & 当前有优先级更高的中断在运
-%		行，本中断等待。\\
-%		\midrule[0.5pt]
-%		Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
-%		的语义设置的辅助位置\\
-%		\midrule[0.5pt]
-%		On & & intTime不超过exeTime，ISR对应位为true & 中断正在被处理 \\
-%		\midrule[0.5pt]
-%		Suspend & & intTime静止，ISR对应位为true & 中断被更高优先级抢占CPU \\ 
-%		\midrule[0.5pt]
-%		Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On到Off的完整语义设置
-%		的辅助位置\\
-%		\bottomrule[1.5pt]
-%	\end{tabularx}
-%\end{table}
-
-\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
-	\caption{基本中断模板：位置}
-	\label{tab:basic_intr_loc}\\
-	\toprule[1.5pt]
-	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endfirsthead
-	\multicolumn{4}{c}{续表~\thetable\hskip1em 基本中断模板：位置}\\
-	\toprule[1.5pt]
-	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endhead
-	\hline
-	\multicolumn{4}{r}{续下页}
-	\endfoot
-	\endlastfoot
-	Off & 初始位置 & intTime和timeSinceStart保持静止，ISR对应位为false & 
-	初始位置，当前没有该中断\\
-	\midrule[0.5pt]
-	Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
-	\midrule[0.5pt]
-	Wait & & intTime保持静止，ISR对应位为true & 当前有优先级更高的中断在运
-	行，本中断等待。\\
-	\midrule[0.5pt]
-	Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
-	的语义设置的辅助位置\\
-	\midrule[0.5pt]
-	On & & intTime不超过exeTime，ISR对应位为true & 中断正在被处理 \\
-	\midrule[0.5pt]
-	Suspend & & intTime静止，ISR对应位为true & 中断被更高优先级的中断抢占CPU \\ 
-	\midrule[0.5pt]
-	Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On到Off的完整语义设置
-	的辅助位置\\
-	\bottomrule[1.5pt]
-\end{longtabu}
-
-\begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
-	\caption{基本中断模板：变迁 }
-	\label{tab:basic_intr_mov}\\
-	\toprule[1.5pt]
-	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
-	{\heiti 更新} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endfirsthead
-	\multicolumn{6}{c}{续表~\thetable\hskip1em 基本中断模板：变迁}\\
-	\toprule[1.5pt]
-	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
-	{\heiti 更新} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endhead
-	\hline
-	\multicolumn{6}{r}{续下页}
-	\endfoot
-	\endlastfoot
-	Off & Acknowledge & & 接收到中断信号 & ISR对应位置位，时钟清零 & 中断控
-	制器接收到中断信号\\
-	\midrule[0.5pt]
-	Acknowledge & Wait & 本中断优先级不是最高 & & & 当前有更高优先级的中断存
-	在，本中断等待\\
-	\midrule[0.5pt]
-	Wait & Auxiliary1 & 本中断优先级最高 & 接收到resume信号 & &  高优先级的
-	中断执行完毕，本中断得到CPU\\
-	\midrule[0.5pt]
-	Wait & Wait & & 接收到中断信号 & & 忽略本中断的其他实例\\
-	\midrule[0.5pt]
-	Acknowledge & Auxiliary1 & 本中断优先级最高 & & & 本中断优先级最高，准备
-	执行\\
-	\midrule[0.5pt]
-	Auxiliary1 & On & & 发送prompt信号 & & 当前中断获得CPU，打断其他正在被处
-	理的中断\\
-	\midrule[0.5pt]
-	On & Suspend & & 接收到prompt信号 & & 当前中断被更高优先级的中断打断\\
-	\midrule[0.5pt]
-	On & On & & 接收到中断信号 & & 忽略本中断的其他实例\\
-	\midrule[0.5pt]
-	Suspend & On & 本中断优先级最高 & 接收到resume信号 & & 高优先级的中断执
-	行完毕，本中断得到CPU\\
-	\midrule[0.5pt]
-	Supend & Suspend & & 接收到中断信号 & & 忽略本中断的其他实例\\
-	\midrule[0.5pt]
-	On & Auxiliary2 & 中断实际处理时间$t$达到中断处理时间$T$ & & ISR对应位
-	复位 & 中断执行结束\\
-	\midrule[0.5pt]
-	Auxiliary2 & Off & & 发送resume信号 & 时钟清零 & 通知其他中断获取CPU\\
-	\bottomrule[1.5pt]
-\end{longtabu}
-
-注意，表~\ref{tab:basic_intr_mov} 中并没有选择一列，因为在该模板中，所有的位置
-变迁都没有规定选择属性。
-
-\subsubsection{环境模板}
-\label{subsubsec:basic_env}
-
-环境实例的作用是提供一个中断触发源。在本模型中，由于没有其他的规定，中断的触发方
-式为随机触发。如图~\ref{fig:evn_basic} 所示，环境模板没有内部声明，只有一个位
-置，无实际意义，其存在是为了在变迁中随机向intr[0]至intr[N-1]的信道中发送一个信
-号。
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.2\textwidth]{env_basic}
-	\caption{基本中断:环境}
-	\label{fig:evn_basic}
-\end{figure}
-
-\subsubsection{模型声明}
-\label{subsubsec:basic_model_decl}
-
-在模型声明中我们将声明所有的实例和模型组成。如图~\ref{fig:basic_model_decl} 所示，
-1-7行声明了7个中断实例，注意他们的两个参数，分别对应中断ID和中断处理时间$T$。第9
-行生命了中断源。第11行声明了整个模型。至此，我们可以进行仿真模拟，撰写性质交给验
-证器去验证。
-
-\begin{figure}[H]
-	\centering
-	\begin{lstlisting}
-	intr0 = Interrupt_basic(0, 1000);
-	intr1 = Interrupt_basic(1, 500);
-	intr2 = Interrupt_basic(2, 500);
-	intr3 = Interrupt_basic(3, 600);
-	intr4 = Interrupt_basic(4, 700);
-	intr5 = Interrupt_basic(5, 800);
-	intr6 = Interrupt_basic(6, 900);
-	
-	env_basic = env_basic();
-	
-	system intr0, intr1, intr2, intr3, intr4, 
-	intr5, intr6, env_basic;
-	\end{lstlisting}
-	\caption{基本中断模型：模型声明}
-	\label{fig:basic_model_decl}
-\end{figure}
-
-
-然后，支持重入的中断是不限定重入的次数的。这由其实现机制导致，我们将在
-~\ref{subsec:reentrant_hardware} 小节详细讲解。但是，按照我们对基本中断模型的
-建模思想，无限制的重入意味着有无限多个模板实例，这些实例将在模型运行中被动态地创
-建，这在\uppaal 中是不被允许的。同时，这样做还会导致状态本身无限增加，状态空间则是
-无穷大，这在模型检测理论中也是不被允许的。因此，我们在建模带重入的中断时，只能退
-而求其次，规定重入次数的上限，那么状态大小就是确定的，就可以应用模型检测的理论和
-\uppaal 来建模。
-
-\section{\uppaal 中的重入中断模型}
-\label{subsec:reentrant_uppaal}
-
-尽管重入中断和基本中断的实现几乎完全相同，但是由于重入这个行为与基本中断的行为大
-相径庭，我们不能简单套用简单中断的模板。通过上文的分析我们知道，对重入中断建模需
-要假设重入次数的上限，同时，该上限在实际的硬件平台上是存在的。因此只要设置的合理，
-带次数上限的重入中断模型能够反映真实的带重入中断的系统。于是，我们引入假设
-~\ref{assume:limit} 。
-
-\begin{assumption}
-	带重入的中断系统存在重入次数上限$M$，表示系统中同时存在被处理的同中断实例个数。
-	\label{assume:limit}
-\end{assumption}
-
-\subsubsection{声明}
-\label{subsubsec:reentrant_decl}
-
-首先还是声明部分。我们在基本中断模型的基础上根据假设~\ref{assume:limit} 做了一些
-修改。如图~\ref{fig:reentrant_decl} 所示，第2行定义了重入次数上限$M$的取值。第5行
-定义了一个相关的数据类型clock\_id。其他定义与~\ref{subsubsec:basic_decl} 小节相
-同，本小节不再赘述。
-
-\begin{figure}[H]
-	\centering
-	\begin{lstlisting}
-	const int N = 7;
-	const int M = 3;
-	
-	typedef int[0, N-1] intr_id; 
-	typedef int[0, M-1] clock_id;
-	chan intr[intr_id];
-	urgent broadcast chan prompt, resume;
-	
-	bool ISR[intr_id] = {false, false,false,false,false,false,false};
-	
-	typedef int[0,N] Pri;
-	Pri get_highest_pri(){
-	meta int i;
-	for(i = 0; i < N; i++){
-	if(ISR[i]){
-	return i;
-	} 
-	}
-	return N;
-	}
-	\end{lstlisting}
-	\caption{重入中断模型：声明}
-	\label{fig:reentrant_decl}
-\end{figure}
-
-\subsubsection{重入中断模板}
-\label{subsubsec:reentrant_intr}
-重入中断模板在构建的总体思路上还是遵照了图~\ref{fig:thread_state} ，但是在细节上，
-尤其是运行状态，重入中断模板做了很大的扩充以支持重入这一特性。重入中断的状态机如图
-~\ref{fig:Interrupt_reentrant} 所示，表示运行的位置由一个变成了三个。这是因为在
-这个模型中重入次数上限$M$的取值为3。如果$M==4$，那么就需要第四个运行位置。即，$M$
-决定了代表运行的位置数。这么做的原因是\uppaal 限制了迁移的Guard中，有关时钟的语义范
-围，且当重入次数发生改变时，无法用纯静态的循环表达式表达出限制要求。这样添加位置数
-的做法使得状态机不够简洁，不过这是我目前能够想到得最合理的建模方式。
-
-\begin{table}[htb]
-	\centering
-	\caption{重入中断模板：内部声明}
-	\label{tab:reentrant_intr_decl}
-	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
-		\toprule[1.5pt]
-		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
-		\midrule[1pt]
-		current & clock\_id & 当前占据CPU的中断实例ID，初始为0 \\
-		\midrule[0.5pt]
-		intTime[M] & clock数组 & 对应每个重入中断实例的中断实际处理时间$t$ \\
-		\midrule[0.5pt]
-		timeSinceStart[M] & clock数组 & 对应每个重入中断实例的中断响应耗时$t^\prime$ \\
-		\midrule[0.5pt]
-		initClock & 无返回值的函数 & 将所有时钟清零 \\
-		\bottomrule[1.5pt]
-	\end{tabularx}
-\end{table}
-
-%\begin{longtabu} to \linewidth {p{7em}p{5em}X}
-%	\caption{重入中断模板：内部声明}
-%	\label{tab:reentrant_intr_decl}\\
-%	\toprule[1.5pt]
-%	{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
-%	\midrule[1pt]
-%	\endfirsthead
-%	\multicolumn{3}{c}{续表~\thetable\hskip1em 重入中断模板：内部声明}\\
-%	\toprule[1.5pt]
-%	{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
-%	\midrule[1pt]
-%	\endhead
-%	\hline
-%	\multicolumn{3}{r}{续下页}
-%	\endfoot
-%	\endlastfoot
-%	intTime[$M$] & clock数组 & 对应每个重入中断实例的中断实际处理时间$t$ \\
-%	\midrule[0.5pt]
-%	timeSinceStart[$M$] & clock数组 & 对应每个重入中断实例的中断响应耗时$t^\prime$ \\
-%	\midrule[0.5pt]
-%	initClock & 无返回值的函数 & 将所有时钟清零 \\
-%	\bottomrule[1.5pt]
-%\end{longtabu}
-
-\begin{figure}[H]
-	\centering
-	\begin{lstlisting}
-	void initClock(){
-	meta int i;
-	for(i = 0; i < M; i++){
-	intTime[i] = 0;
-	timeSinceStart[i] = 0;
-	}
-	}
-	\end{lstlisting}
-	\caption{initClock函数定义}
-	\label{fig:initClock}
-\end{figure}
-
-\begin{table}[htb]
-	\centering
-	\caption{重入中断模板：参数}
-	\label{tab:reentrant_intr_para}
-	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
-		\toprule[1.5pt]
-		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
-		\midrule[1pt]
-		id & int & 中断号，也是中断优先级 \\
-		\midrule[0.5pt]
-		exeTime & int & 中断处理时间$T$ \\
-		\bottomrule[1.5pt]
-	\end{tabularx}
-\end{table}
-
-除了位置的数量以外，模板内部的声明和状态机上的其他细节也发生了很多变化，为了行文方
-便，在此还是依次列出完整的模板声明，参数，位置和变迁，分别见表
-~\ref{tab:reentrant_intr_decl} ，表~\ref{tab:reentrant_intr_para}，
-表~\ref{tab:reentrant_intr_loc}，表~\ref{tab:reentrant_intr_mov} 。注意，在
-表~\ref{tab:reentrant_intr_decl}提到的函数的定义如图~\ref{fig:initClock} 所示。
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=\textwidth]{Interrupt_reentry}
-	\caption{重入中断:状态机}
-	\label{fig:Interrupt_reentrant}
-\end{figure}
-
-\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
-	\caption{重入中断模板：位置}
-	\label{tab:reentrant_intr_loc}\\
-	\toprule[1.5pt]
-	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endfirsthead
-	\multicolumn{4}{c}{续表~\thetable\hskip1em 重入中断模板：位置}\\
-	\toprule[1.5pt]
-	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endhead
-	\hline
-	\multicolumn{4}{r}{续下页}
-	\endfoot
-	\endlastfoot
-	Off & 初始位置 & intTime时钟组和timeSinceStart时钟组均保持静止，ISR对应位
-	为false & 初始位置，当前没有该中断\\
-	\midrule[0.5pt]
-	Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
-	\midrule[0.5pt]
-	Wait & & intTime时钟组保持静止，ISR对应位为true & 当前有优先级更高的中断
-	在运行，本中断等待。\\
-	\midrule[0.5pt]
-	Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On\_1
-	的语义设置的辅助位置\\
-	\midrule[0.5pt]
-	On\_1 & & intTime[0]不超过exeTime，ISR对应位为true，其他intTime时钟静止 & 
-	中断正在被处理 \\
-	\midrule[0.5pt]
-	On\_2 & & intTime[1]不超过exeTime，ISR对应位为true，其他intTime时钟静止 & 
-	中断被重入一次，正在被处理 \\
-	\midrule[0.5pt]
-	On\_3 & & intTime[2]不超过exeTime，ISR对应位为true，其他intTime时钟静止 & 
-	中断被重入两次，正在被处理 \\
-	\midrule[0.5pt]
-	Suspend & & intTime静止，ISR对应位为true & 中断被更高优先级抢占CPU \\ 
-	\midrule[0.5pt]
-	Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On\_1到Off的完整语义设置
-	的辅助位置\\
-	\bottomrule[1.5pt]
-\end{longtabu}
-
-\begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
-	\caption{重入中断模板：变迁 }
-	\label{tab:reentrant_intr_mov}\\
-	\toprule[1.5pt]
-	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
-	{\heiti 更新} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endfirsthead
-	\multicolumn{6}{c}{续表~\thetable\hskip1em 基本中断模板：变迁}\\
-	\toprule[1.5pt]
-	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
-	{\heiti 更新} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endhead
-	\hline
-	\multicolumn{6}{r}{续下页}
-	\endfoot
-	\endlastfoot
-	Off & Acknowledge & & 接收到中断信号 & ISR对应位置位，时钟清零 & 中断控
-	制器接收到中断信号\\
-	\midrule[0.5pt]
-	Acknowledge & Wait & 本中断优先级不是最高 & & & 当前有更高优先级的中断存
-	在，本中断等待\\
-	\midrule[0.5pt]
-	Wait & Auxiliary1 & 本中断优先级最高 & 接收到resume信号 & &  高优先级的
-	中断执行完毕，本中断得到CPU\\
-	\midrule[0.5pt]
-	Wait & Wait & & 接收到中断信号 & & 忽略本中断的其他实例\\
-	\midrule[0.5pt]
-	Acknowledge & Auxiliary1 & 本中断优先级最高 & & & 本中断优先级最高，准备
-	执行\\
-	\midrule[0.5pt]
-	Auxiliary1 & On\_1 & & 发送prompt信号 & & 当前中断获得CPU，打断其他正在被处
-	理的中断\\
-	\midrule[0.5pt]
-	On\_1 & Suspend & & 接收到prompt信号 & & 当前中断被更高优先级的中断打断\\
-	\midrule[0.5pt]
-	On\_1 & On\_2 & & 接收到中断信号 & current增加1 & 发生第一次重入\\
-	\midrule[0.5pt]
-	On\_2 & Suspend & & 接收到prompt信号 & & 当前中断被更高优先级的中断打断\\
-	\midrule[0.5pt]
-	On\_2 & On\_3 & & 接收到中断信号 & current增加1 & 发生第二次重入\\
-	\midrule[0.5pt]
-	On\_2 & On\_1 & intTime[1]达到exeTime & & current减少1 & 第一次重入处理完毕\\
-	\midrule[0.5pt]
-	On\_3 & Suspend & & 接收到prompt信号 & & 当前中断被更高优先级的中断打断\\
-	\midrule[0.5pt]
-	On\_3 & On\_3 & & 接收到中断信号 &  & 忽略以后的本中断实例\\
-	\midrule[0.5pt]
-	On\_3 & On\_2 & intTime[2]达到exeTime & & current减少1 & 第二次重入处理完毕\\
-	\midrule[0.5pt]
-	Suspend & On\_1 & 本中断优先级最高 & 接收到resume信号 & & 高优先级的中断执
-	行完毕，本中断得到CPU\\
-	\midrule[0.5pt]
-	Suspend & On\_2 & 本中断优先级最高 & 接收到resume信号 & & 高优先级的中断执
-	行完毕，本中断得到CPU\\
-	\midrule[0.5pt]
-	Suspend & On\_3 & 本中断优先级最高 & 接收到resume信号 & & 高优先级的中断执
-	行完毕，本中断得到CPU\\
-	\midrule[0.5pt]
-	Supend & Suspend & & 接收到中断信号 & & 忽略本中断的其他实例\\
-	\midrule[0.5pt]
-	On\_1 & Auxiliary2 & intTime[0]达到exeTime & & ISR对应位复位 & 中断执行结束\\
-	\midrule[0.5pt]
-	Auxiliary2 & Off & & 发送resume信号 & 时钟清零 & 通知其他中断获取CPU\\
-	\bottomrule[1.5pt]
-\end{longtabu}
-
-在这个模型中，中断重入只有在本中断是当前优先级最高的中断时才会发生。如果本中断的优先级
-较低，那么本中断会处于Wait或者Suspend的位置，中断重入就无法发生。因为一旦发生重入，如
-果在运行的位置，就会造成优先级反转；如果在Wait或者Suspend位置，就会发生某个中断的多个
-实例在等待。这两者都不符合中断系统的设置和硬件的实现。
-
-\subsubsection{环境模板}
-\label{subsubsec:reentrant_env}
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.2\textwidth]{env_basic}
-	\caption{重入中断:环境}
-	\label{fig:env_reentrant}
-\end{figure}
-
-这个模型中的环境模板与~\ref{subsubsec:basic_env} 小节中描述的完全一致，如
-图~\ref{fig:env_reentrant} 所示。
-
-\subsubsection{模型声明}
-\label{subsubsec:reentrant_model_decl}
-
-模型声明与~\ref{subsubsec:basic_model_decl} 小节中描述的基本相似，见
-图~\ref{fig:reentrant_model_decl} 。
-
-
-\begin{figure}[H]
-	\centering
-	\begin{lstlisting}
-	intr0 = Interrupt_reentry(0, 1000);
-	intr1 = Interrupt_reentry(1, 500);
-	intr2 = Interrupt_reentry(2, 500);
-	intr3 = Interrupt_reentry(3, 600);
-	intr4 = Interrupt_reentry(4, 700);
-	intr5 = Interrupt_reentry(5, 800);
-	intr6 = Interrupt_reentry(6, 900);
-	
-	env = env_reentry();
-	
-	system intr0, intr1, intr2, intr3, intr4, 
-	intr5, intr6, env;   
-	\end{lstlisting}
-	\caption{重入中断模型：模型声明}
-	\label{fig:reentrant_model_decl}
-\end{figure}
-
-\section{\uppaal 中的分段中断模型}
-\label{subsec:segment_uppaal}
-
-在深入了解分段中断的实现机制之后，我们就可以在\uppaal 中构建分段中断的模型。在此之
-前，我们需要做一些抽象和假设。
-
-首先，第一个抽象，我们应该从用户程序的层次来看待中断处理，所以为了完成一个中断而
-在硬件上进行的3次中断触发行为可以被抽象。其次，我们的模型并不考虑多线程的运行环
-境，且并非所有操作系统在实现分段中断时都有线程切换的操作，因此线程切换的操作可以
-被抽象。最后，所有的硬件和代码描述的大部分语义我们都可以抽象，这与我们之前的做的
-抽象类似。
-
-为了简化问题，以便\uppaal 能够清晰准确表达模型的行为，我们还需要做一个假设。假设
-如下：
-
-\begin{assumption}
-	分段中断不允许重入。
-\end{assumption}
-
-\subsubsection{声明}
-\label{subsubsec:segment_decl}
-
-分段中断模型的声明部分如图~\ref{fig:sec_decl} 所示。它与
-~\ref{subsubsec:basic_decl} 小节完全相同，不再赘述。
-
-\begin{figure}[H]
-	\centering
-	\begin{lstlisting}
-	const int N = 7;
-	typedef int[0, N-1] intr_id; 
-	chan intr[intr_id];
-	urgent broadcast chan prompt, resume;
-	bool ISR[intr_id] = {false, false,false,
-	false,false,false,false};
-	
-	typedef int[0,N] Pri;
-	Pri get_highest_pri(){
-	meta int i;
-	for(i = 0; i < N; i++){
-	if(ISR[i]){
-	return i;
-	} 
-	}
-	return N;
-	}
-	\end{lstlisting}
-	\caption{分段中断模型：声明}
-	\label{fig:sec_decl}
-\end{figure}
-
-\subsubsection{分段中断模板}
-\label{subsubsec:segment_intr}
-
-分段中断模板的状态机如图~\ref{fig:intr_sec} 所示。该模板的内部声明、参数、
-位置和变迁的说明分别见表~\ref{tab:sec_intr_decl}，表~\ref{tab:sec_intr_para}，
-表~\ref{tab:sec_intr_loc} 和表~\ref{tab:sec_intr_mov} 。
-
-\begin{table}[htb]
-	\centering
-	\caption{分段中断模板：内部声明}
-	\label{tab:sec_intr_decl}
-	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
-		\toprule[1.5pt]
-		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
-		\midrule[1pt]
-		intTime & clock & 中断实际处理时间$t$ \\
-		\midrule[0.5pt]
-		timeSinceStart & clock & 中断响应耗时$t^\prime$ \\
-		\bottomrule[1.5pt]
-	\end{tabularx}
-\end{table}
-
-\begin{table}[htb]
-	\centering
-	\caption{分段中断模板：参数}
-	\label{tab:sec_intr_para}
-	\begin{tabularx}{\linewidth}{p{7em}p{5em}X}
-		\toprule[1.5pt]
-		{\heiti 名称} & {\heiti 类型} & {\heiti 含义}\\
-		\midrule[1pt]
-		id & int & 中断号，也是中断优先级 \\
-		\midrule[0.5pt]
-		exeTime\_i & int & 紧急处理分段的处理时间$T_i$ \\
-		\midrule[0.5pt]
-		exeTime\_d & int & 推迟处理分段的处理时间$T_d$ \\
-		\bottomrule[1.5pt]
-	\end{tabularx}
-\end{table}
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=\textwidth]{Interrupt_section}
-	\caption{分段中断：状态机}
-	\label{fig:intr_sec}
-\end{figure}
-
-%\begin{table}[!htb]
-%	\centering
-%	\caption{分段中断模板：位置}
-%	\label{tab:sec_intr_loc}
-%	\begin{tabularx}{\linewidth}{p{5em}p{5em}p{13em}X}
-%		\toprule[1.5pt]
-%		{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
-%		\midrule[1pt]
-%		Off & 初始位置 & intTime和timeSinceStart保持静止，ISR对应位为false & 
-%		初始位置，当前没有该中断\\
-%		\midrule[0.5pt]
-%		Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
-%		\midrule[0.5pt]
-%		Wait & & intTime保持静止，ISR对应位为true & 当前有优先级更高的中断在运
-%		行，本中断等待。\\
-%		\midrule[0.5pt]
-%		Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
-%		的语义设置的辅助位置\\
-%		\midrule[0.5pt]
-%		On\_i & & intTime不超过exeTime\_i，ISR对应位为true & 中断紧急处理分段正在被处理 \\
-%		\midrule[0.5pt]
-%		Suspend\_i & & intTime静止，ISR对应位为true & 中断紧急处理分段被更高优先级的中断抢
-%		占CPU \\ 
-%		\midrule[0.5pt]
-%		Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On\_i到和On\_d和Suspend\_d的完整
-%		语义设置的辅助位置\\
-%		\midrule[0.5pt]
-%		On\_d & & intTime不超过exeTime\_d，ISR对应位为false & 中断推迟处理分段正在被处理 \\
-%		\midrule[0.5pt]
-%		Suspend\_d & & intTime静止，ISR对应位为false & 中断推迟处理分段被抢占CPU \\ 
-%		\bottomrule[1.5pt]
-%	\end{tabularx}
-%\end{table}
-
-\begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
-	\caption{分段中断模板：位置}
-	\label{tab:sec_intr_loc}\\
-	\toprule[1.5pt]
-	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endfirsthead
-	\multicolumn{4}{c}{续表~\thetable\hskip1em 重入中断模板：位置}\\
-	\toprule[1.5pt]
-	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endhead
-	\hline
-	\multicolumn{4}{r}{续下页}
-	\endfoot
-	\endlastfoot
-	Off & 初始位置 & intTime和timeSinceStart保持静止，ISR对应位为false & 
-	初始位置，当前没有该中断\\
-	\midrule[0.5pt]
-	Acknowledge & 关键位置 & ISR对应位为true & 中断控制器接收到中断信号\\
-	\midrule[0.5pt]
-	Wait & & intTime保持静止，ISR对应位为true & 当前有优先级更高的中断在运
-	行，本中断等待。\\
-	\midrule[0.5pt]
-	Auxiliary1 & 关键位置 & ISR对应位为true & 为表达Wait和Acknowledge到On
-	的语义设置的辅助位置\\
-	\midrule[0.5pt]
-	On\_i & & intTime不超过exeTime\_i，ISR对应位为true & 中断紧急处理分段
-	正在被处理 \\
-	\midrule[0.5pt]
-	Suspend\_i & & intTime静止，ISR对应位为true & 中断紧急处理分段被更高
-	优先级的中断抢
-	占CPU \\ 
-	\midrule[0.5pt]
-	Auxiliary2 & 关键位置 & ISR对应位为false & 为表达On\_i到和On\_d和
-	Suspend\_d的完整语义设置的辅助位置\\
-	\midrule[0.5pt]
-	On\_d & & intTime不超过exeTime\_d，ISR对应位为false & 中断推迟处理分
-	段正在被处理 \\
-	\midrule[0.5pt]
-	Suspend\_d & & intTime静止，ISR对应位为false & 中断推迟处理分段被抢
-	占CPU \\ 
-	\bottomrule[1.5pt]
-\end{longtabu}
-
-\begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
-	\caption{分段中断模板：变迁 }
-	\label{tab:sec_intr_mov}\\
-	\toprule[1.5pt]
-	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
-	{\heiti 更新} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endfirsthead
-	\multicolumn{6}{c}{续表~\thetable\hskip1em 基本中断模板：变迁}\\
-	\toprule[1.5pt]
-	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
-	{\heiti 更新} & {\heiti 含义}\\
-	\midrule[1pt]
-	\endhead
-	\hline
-	\multicolumn{6}{r}{续下页}
-	\endfoot
-	\endlastfoot
-	Off & Acknowledge & & 接收到中断信号 & ISR对应位置位，时钟清零 & 中断
-	控制器接收到中断信号\\
-	\midrule[0.5pt]
-	Acknowledge & Wait & 本中断优先级不是最高 & & & 当前有更高优先级的中断
-	存在，本中断等待\\
-	\midrule[0.5pt]
-	Wait & Auxiliary1 & 本中断优先级最高 & 接收到resume信号 & &  高优先级
-	的中断执行完毕，本中断得到CPU\\
-	\midrule[0.5pt]
-	Wait & Wait & & 接收到中断信号 & & 忽略本中断的其他实例\\
-	\midrule[0.5pt]
-	Acknowledge & Auxiliary1 & 本中断优先级最高 & & & 本中断优先级最高，
-	准备\\
-	\midrule[0.5pt]
-	Auxiliary1 & On\_i & & 发送prompt信号 & & 当前中断获得CPU，打断其他正
-	在被处理的中断\\
-	\midrule[0.5pt]
-	On\_i & Suspend\_i & & 接收到prompt信号 & & 当前中断的紧急处理分段被
-	更高优先级的中断打断\\
-	\midrule[0.5pt]
-	On\_i & On\_i & & 接收到中断信号 & & 忽略本中断的其他实例\\
-	\midrule[0.5pt]
-	On\_i & Auxiliary2 & intTime达到exeTime\_i & & ISR对应位复位，intTime
-	时钟清零 & 紧急处理分段完成，准备执行推迟处理分段\\
-	\midrule[0.5pt]
-	Suspend\_i & On\_i & 本中断优先级最高 & 接收到resume信号 & & 高优先级
-	的中断执行完毕，本中断得到CPU\\
-	\midrule[0.5pt]
-	Supend\_i & Suspend\_i & & 接收到中断信号 & & 忽略本中断的其他实例\\
-	\midrule[0.5pt]
-	Auxiliary2 & On\_d & 当前没有任何中断的紧急处理分段 & & & 开始执行推迟
-	处理分段\\
-	\midrule[0.5pt]
-	Auxiliary2 & Suspend\_d & 当前有其他中断的紧急处理分段 & 发送resume
-	信号 & & 让出CPU\\
-	\midrule[0.5pt]
-	On\_d & Suspend\_d & & 接收到prompt信号 & & 其他中断触发，抢占CPU\\
-	\midrule[0.5pt]
-	On\_d & On\_d & & 接收到中断信号 & & 忽略本中断的其他实例\\
-	\midrule[0.5pt]
-	On\_d & Off & intTime达到exeTime\_d & 发出resume信号 & 所有时钟清零 & 
-	本中断结束，让出CPU\\
-	\midrule[0.5pt]
-	Suspend\_d & On\_d & 当前没有任何中断的紧急处理分段 & 接收到resume信
-	号 & & 所有中断的紧急
-	处理分段结束\\
-	\midrule[0.5pt]
-	Suspend\_d & Suspend\_d & & 接收到中断信号 & & 忽略本中断的其他实例\\
-	\bottomrule[1.5pt]
-\end{longtabu}
-
-\subsubsection{环境模板}
-\label{subsubsec:segment_env}
-
-这个模型中的环境模板与~\ref{subsubsec:basic_env} 小节中描述的完全一致，如
-图~\ref{fig:env_sec} 所示。
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.2\textwidth]{env_basic}
-	\caption{分段中断:环境}
-	\label{fig:env_sec}
-\end{figure}
-
-\subsubsection{模型声明}
-\label{subsubsec:segment_model_decl}
-
-模型声明与~\ref{subsubsec:basic_model_decl} 小节中描述的基本相似，见
-图~\ref{fig:sec_model_decl} 。不同的是每个中断模板在实例化的时候接受3个参数。
-
-\begin{figure}[H]
-	\centering
-	\begin{lstlisting}
-	intr0 = Interrupt_section(0, 1000, 5000);
-	intr1 = Interrupt_section(1, 500, 5000);
-	intr2 = Interrupt_section(2, 500, 5000);
-	intr3 = Interrupt_section(3, 500, 5000);
-	intr4 = Interrupt_section(4, 700, 5000);
-	intr5 = Interrupt_section(5, 800, 5000);
-	intr6 = Interrupt_section(6, 900, 5000);
-	
-	env = env_section();
-	
-	system intr0, intr1, intr2, intr3, intr4, 
-	intr5, intr6, env;    
-	\end{lstlisting}
-	\caption{重入中断模型：模型声明}
-	\label{fig:sec_model_decl}
-\end{figure}

@@ -26,15 +26,15 @@ Pri get_highest_pri(){
 		<name x="5" y="5">Interrupt_reentry</name>
 		<parameter>int id, int exeTime</parameter>
 		<declaration>clock_id current = 0;
-clock intTime[M], timeSinceStart[M];
+clock intTime[M], timeSinceStart;
 
 //将所有时钟清零
 void initClock(){
     meta int i;
     for(i = 0; i &lt; M; i++){
         intTime[i] = 0;
-        timeSinceStart[i] = 0;
     }
+    timeSinceStart = 0;
 }
 </declaration>
 		<location id="id0" x="0" y="51">
@@ -89,7 +89,7 @@ ISR[id] == true</label>
 		<location id="id8" x="25" y="-586">
 			<name x="42" y="-595">Off</name>
 			<label kind="invariant" x="-153" y="-654">forall(i : clock_id) intTime[i]' == 0 &amp;&amp;
-forall(i : clock_id) timeSinceStart[i]' == 0 &amp;&amp;
+timeSinceStart' == 0 &amp;&amp;
 ISR[id] == 0</label>
 		</location>
 		<init ref="id8"/>
