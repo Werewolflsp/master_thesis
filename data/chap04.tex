@@ -6,39 +6,18 @@
 \chapter{在某航空动力控制系统中的应用}
 \label{cha:case}
 
-受中航工业集团动力控制研究所（无锡）委托，我所在实验室为其验证某嵌入式平台上的中
-断驱动程序。其中一项重要的验证需求就是验证中断优先级设置的合理性。换句话说，我们
-需要验证中断在既有优先级的设置下，其实时性得到保障。我正是应用第~\ref{cha:intr} 
+受中航工业集团动力控制研究所（无锡）委托，我所在实验室为其验证在某航空动力控制系
+统中的中断驱动程序。其中一项重要的验证需求就是验证中断优先级设置的合理性。换句话
+说，我们需要验证中断在既有优先级的设置下，其实时性得到保障。我正是应用第~\ref{cha:intr} 
 章描述的方法和模型，针对本项目做了一些修改，最后完成了该验证需求。
 
-%————————————————————————————————————————————————————————————————————————
-\section{\uppaal 中的模型组成}
-\label{sec:model_combine}	
-一套\uppaal 模型由以下三部分组成。
-\begin{itemize}
-	\item \emph{声明}：整个模型系统中共有的声明，可以是变量或函数。在整个
-	系统中都可以访问。
-	\item \emph{自动机模板}：各类自动机的通用模板，一个模型系统可以有多个
-	模板，一个模板在系统中可以对应多个实例。
-	\begin{enumerate}[(1)]
-		\item \emph{声明}：模板内部的变量或函数，只有本模板的实例可
-		以访问。
-		\item \emph{位置}：时间自动机的位置，每个位置可以有初始（
-		initial），紧急（urgent），关键（committed）。关键位置与紧
-		急位置上，模型中的时钟都停止。不同的是，当有自动机在关键位置时，
-		在下一个状态迁移必须从某一个关键位置发出。
-		\item \emph{变迁}：位置到位置的迁移。变迁包含选择（select）
-		、条件（guard）、同步（sync）、更新（update）四个属性。其中，
-		同步和更新是同时发生的。
-	\end{enumerate}	
-	\item \emph{模型声明}：定义组成系统的模板实例。
-\end{itemize}
-%——————————————————————————————————————————————————————————————————————— 
+\section{应用系统简介}
+\label{sec:system_intro}
 
-\section{Intel 8259}
-\label{sec:8259}
+构建形式化模型之前，我们首先需要对该系统的中断实现有一个全面详细的了解。
 
-构建形式化模型之前，我们首先需要对该平台的中断实现有一个全面详细的了解。
+\subsection{中断控制器介绍}
+\label{subsec:8259}
 
 \begin{figure}[H]
 	\centering
@@ -47,7 +26,7 @@
 	\label{fig:8259_internal}
 \end{figure}
 
-某嵌入式平台采用Intel 8259芯片控制中断。Intel8259是一系列可编程化中断控制器（
+该系统采用Intel 8259芯片控制中断。Intel8259是一系列可编程化中断控制器（
 PIC：Programmable Interrupt Controller）芯片的总称，当初设计它是为了搭配 8-bit
 的Intel 8085以及16-bit的Intel 8086等微处理器来使用。此系列的芯片原本包含 8259、
 8259A、和 8259B，但时至今日，许多制造商已制作了相当多与8259兼容的芯片。运作上，
@@ -62,8 +41,8 @@ PIC：Programmable Interrupt Controller）芯片的总称，当初设计它是�
 	\item 辅助电路
 \end{itemize}
 
-\subsection{编程结构}
-\label{subsec:8259_program}
+\subsubsection{编程结构}
+\label{subsubsec:8259_program}
 
 8259的编程结构共由10个寄存器构成，每个寄存器均为8位。如图~\ref{fig:8259_program}
 所示。
@@ -116,8 +95,8 @@ Word）。操作命令字由应用程序使用，以便对中断处理过程作�
 	屏蔽方式。
 \end{description}
 
-\subsection{功能}
-\label{subsec:8259_function}
+\subsubsection{功能}
+\label{subsubsec:8259_function}
 
 8259通过以下4个功能来完成中断管理器的工作。
 
@@ -138,8 +117,8 @@ Word）。操作命令字由应用程序使用，以便对中断处理过程作�
 	\label{fig:8259_cascad}
 \end{figure}
 
-\subsection{工作原理}
-\label{subsec:8259_work}
+\subsubsection{工作原理}
+\label{subsubsec:8259_work}
 
 8259完成一次中断处理的工作步骤如下：
 
@@ -182,10 +161,10 @@ Word）。操作命令字由应用程序使用，以便对中断处理过程作�
 	\pozhehao （10）步保存的IP、CS、PSW，CPU接着执行被中断的程序。
 \end{enumerate}
 
-\section{中断设置}
-\label{sec:intr_setting}
+\subsection{中断设置}
+\label{subsec:intr_setting}
 
-某嵌入式平台采用两片Intel 8259级联的方式，如图3所示。我们称与CPU连接的Intel 8259
+某航空动力控制系统采用两片Intel 8259级联的方式，如图3所示。我们称与CPU连接的Intel 8259
 为主片，与主片连接的另一片为从片。该项目中涉及中断共10个，主从片上各5个。通过设置
 主片上的OCW2寄存器，使主片上中断优先级为IR3$>$IR4$>$IR5$>$IR6$>$IR7$>$IR0$>$IR1
 $>$IR2。因为IR2上连接的是从片，因此主片上中断优先级比从片高。从片上中断优先级按默
@@ -196,17 +175,11 @@ $>$IR2。因为IR2上连接的是从片，因此主片上中断优先级比从�
 
 10个中断中，有3个通讯中断在实际运行中不会被触发。因此我们需要考虑的中断数量是7个。
 
-\section{\uppaal 简介}
-\label{sec:Uppaal_intro}
-
-\uppaal 是一个进行建模，仿真和验证实时系统的集成工具环境，由丹麦奥尔堡大
-学的计算机科学基础研究中心（Basic Research in Computer Science, BRICS）
-和瑞典乌普萨拉大学信息技术系联合开发。它适合那些可以被建模为具有有限的控
-制结构和实数值时钟，通过信道或共享变量通信的非确定性过程集合的系统。典型
-的应用领域包括实时控制器和特定的实时性至关重要的通信协议。\cite{Behrmann04atutorial}
-
-\section{在\uppaal 中构建中断模型}
+\section{构建中断模型}
 \label{sec:build}
+
+\subsection{抽象与假设}
+\label{subsec:abstract_ass}
 
 在与对方工程师交流之后，我们认为一个中断在处理结束之前，它的下一个实例触发，会对
 数据造成不可预计的影响。中断优先级的设置目的则是避免该情况的发生。于是，问题转换
@@ -246,6 +219,41 @@ $>$IR2。因为IR2上连接的是从片，因此主片上中断优先级比从�
 对应位置0，行为特殊，用一个状态机来单独描述。除此以外，我们需要一个中断源，它会
 按照一定的条件约束触发中断。该中断源也用一个状态机来描述。
 
+经过上述抽象和假设之后，我们已经将问题转化为一个可以利用模型检测工具建模分析的问题。
+
+\subsection{\uppaal 简介}
+\label{sec:Uppaal_intro}
+
+首先，我们简要介绍一下我们使用的建模和分析工具\uppaal。
+
+\uppaal 是一个进行建模，仿真和验证实时系统的集成工具环境，由丹麦奥尔堡大
+学的计算机科学基础研究中心（Basic Research in Computer Science, BRICS）
+和瑞典乌普萨拉大学信息技术系联合开发。它适合那些可以被建模为具有有限的控
+制结构和实数值时钟，通过信道或共享变量通信的非确定性过程集合的系统。典型
+的应用领域包括实时控制器和特定的实时性至关重要的通信协议。\cite{Behrmann04atutorial}
+
+一套\uppaal 模型由以下三部分组成。
+\begin{itemize}
+	\item \emph{声明}：整个模型系统中共有的声明，可以是变量或函数。在整个
+	系统中都可以访问。
+	\item \emph{自动机模板}：各类自动机的通用模板，一个模型系统可以有多个
+	模板，一个模板在系统中可以对应多个实例。
+	\begin{enumerate}[(1)]
+		\item \emph{声明}：模板内部的变量或函数，只有本模板的实例可
+		以访问。
+		\item \emph{位置}：时间自动机的位置，每个位置可以有初始（
+		initial），紧急（urgent），关键（committed）。关键位置与紧
+		急位置上，模型中的时钟都停止。不同的是，当有自动机在关键位置时，
+		在下一个状态迁移必须从某一个关键位置发出。
+		\item \emph{变迁}：位置到位置的迁移。变迁包含选择（select）
+		、条件（guard）、同步（sync）、更新（update）四个属性。其中，
+		同步和更新是同时发生的。
+	\end{enumerate}	
+	\item \emph{模型声明}：定义组成系统的模板实例。
+\end{itemize}
+
+接下来，我们给出在\uppaal 中构建的时间自动机模型。
+
 %//    0 SIO0
 %//    1 双发通讯
 %//    2 AD        分割为两部分，第二部分的优先级为10，可被任意中断打断
@@ -254,8 +262,11 @@ $>$IR2。因为IR2上连接的是从片，因此主片上中断优先级比从�
 %//    5 DMA结束
 %//    6 DMA应答
 
-\subsection{声明}
-\label{subsec:exp_decl}
+\subsection{在\uppaal 中的模型}
+\label{subsec:model}
+
+\subsubsection{声明}
+\label{subsubsec:exp_decl}
 
 该模型的声明比较长，分列在图~\ref{fig:exp_decl} 和图~\ref{fig:exp_decl_2} 中。
 
@@ -289,17 +300,16 @@ $>$IR2。因为IR2上连接的是从片，因此主片上中断优先级比从�
 	clock intTime[intr_id];
 	clock timeSinceStart[intr_id];
 	clock universe;	
+	bool already[intr_id] = {false, false, false, false, 
+	false, false, false};
 	\end{lstlisting}
-	\caption{某嵌入式平台中断模型：声明}
+	\caption{某航空动力控制系统中断模型：声明}
 	\label{fig:exp_decl}
 \end{figure}
 
 \begin{figure}[H]
 	\centering
-	\begin{lstlisting}[firstnumber=28]
-	bool already[intr_id] = {false, false, false, false, 
-							false, false, false};	
-
+	\begin{lstlisting}[firstnumber=30]
 	typedef int[0,N] Pri;
 	Pri get_highest_pri(){
 		meta int i;
@@ -341,20 +351,19 @@ $>$IR2。因为IR2上连接的是从片，因此主片上中断优先级比从�
 		return t;
 	} 
 	\end{lstlisting}
-	\caption{续：某嵌入式平台中断模型：声明}
+	\caption{续：某航空动力控制系统中断模型：声明}
 	\label{fig:exp_decl_2}
 \end{figure}
 
-其中部分定义与~\ref{subsubsec:basic_decl} 小节中类似。在第1行，我们定义了
-中断数目，第2行依然是重新定义一个数据类型用来表示中断ID和优先级。第3、4行分
-别定义了0号和1号中断\footnote{由于项目涉密，在此提到的所有的具体中断名均省
-略，以中断ID代替。AD中断为2号中断。}的触发最短时间间隔。第6行定义了一个时间
-间隔，在~\ref{subsec:exp_env} 小节中我们在定义中断触发源时会使用它。之所以
-将数值定义在这里是为了集中所有静态定义，方便修改和实验调整。
+在第1行，我们定义了中断数目，第2行重新定义一个数据类型用来表示中断ID和优先级。
+第3、4行分别定义了0号和1号中断\footnote{由于项目涉密，在此提到的所有的具体
+中断名均省略，以中断ID代替。AD中断为2号中断。}的触发最短时间间隔。第6行定义
+了一个时间间隔，在~\ref{subsubsec:exp_env} 小节中我们在定义中断触发源时会使用
+它。之所以将数值定义在这里是为了集中所有静态定义，方便修改和实验调整。
 
 第7、8行定了所有的信道。第10-14定义了所有的时间参数的数值，E[]和D[]分别存储
 $T$和$T^\prime$的数值。其中cTime是AD中断的无中断特权部分的执行时间，关于AD
-中断我们将在\ref{subsec:exp_ad} 小节详细介绍。第19行定义了每个中断的发生次
+中断我们将在\ref{subsubsec:exp_ad} 小节详细介绍。第19行定义了每个中断的发生次
 数。因为需要验证的程序的中断具有周期性，因此我们只需要验证一个最大周期内的情
 况即可。而一个最大周期内各个中断的触发次数是已知的。
 
@@ -369,15 +378,16 @@ $T$和$T^\prime$的数值。其中cTime是AD中断的无中断特权部分的执
 源需要部分读取时钟。放在声明里与放在模板内部对状态空间的大小并没有影响。
 
 第28行定义了一个数组来表示某中断在本周期是否已经触发过。这个数组是为了表达
-中断先后触发的语义设置的，详细的使用见\ref{subsec:exp_model_decl} 小节。
+中断先后触发的语义设置的，详细的使用见\ref{subsubsec:exp_model_decl} 小节。
 
 第31-60行顶一个几个辅助函数。代码逻辑都很简单，在此不赘述。
 
-\subsection{普通中断模板}
-\label{subsec:exp_intr}
+\subsubsection{普通中断模板}
+\label{subsubsec:exp_intr}
 
 本项目中，普通中断的状态机如图~\ref{fig:exp_decl} 所示。它的构造很简单，
-和~\ref{subsubsec:basic_decl} 小节中展示的状态机类似，但是有三个主要区别：
+和~\ref{subsec:intr_automata} 小节中展示的基本中断的自动机模型很相似，但是
+有三个主要区别：
 
 \begin{itemize}
 	\item 本状态机有一个Error位置。设置该位置是为了便于描述验证性质。
@@ -387,23 +397,27 @@ $T$和$T^\prime$的数值。其中cTime是AD中断的无中断特权部分的执
 \end{itemize}
 
 模板只有一个参数\pozhehao 中断ID，没有内部声明，位置和变迁说明见
-表~\ref{tab:exp_intr_loc} 和~\ref{tab:exp_intr_mov} 。
+表~\ref{tab:exp_intr_loc} 和~\ref{tab:exp_intr_mov} 。本章与第~\ref{cha:intr}
+章在描述自动机时的格式稍有不同。第~\ref{cha:intr} 章在描述时对应
+定义~\ref{def:SWA_ext} ，而本章在描述时则按照\uppaal 的设置要求。二者实际是
+等价的。只不过，在\uppaal 模型中，时钟导数被整合到位置约束和位置的附加属性里，
+标签在\uppaal 中被称为信道，同步是自动机通过信道通信，即标签的动作。
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.9\textwidth]{Interrupt}
-	\caption{某嵌入式平台中断模型：普通中断}
+	\caption{某航空动力控制系统中断模型：普通中断}
 	\label{fig:exp_intr}
 \end{figure}
 
 \begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
-	\caption{某嵌入式平台中断模板：位置}
+	\caption{某航空动力控制系统普通中断模板：位置}
 	\label{tab:exp_intr_loc}\\
 	\toprule[1.5pt]
 	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
 	\midrule[1pt]
 	\endfirsthead
-	\multicolumn{4}{c}{续表~\thetable\hskip1em 基本中断模板：位置}\\
+	\multicolumn{4}{c}{续表~\thetable\hskip1em 某航空动力控制系统普通中断模板：位置}\\
 	\toprule[1.5pt]
 	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
 	\midrule[1pt]
@@ -438,14 +452,14 @@ $T$和$T^\prime$的数值。其中cTime是AD中断的无中断特权部分的执
 \end{longtabu}
 
 \begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
-	\caption{嵌入式平台中断模板：变迁 }
+	\caption{某航空动力控制系统普通中断模板：变迁 }
 	\label{tab:exp_intr_mov}\\
 	\toprule[1.5pt]
 	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
 	{\heiti 更新} & {\heiti 含义}\\
 	\midrule[1pt]
 	\endfirsthead
-	\multicolumn{6}{c}{续表~\thetable\hskip1em 基本中断模板：变迁}\\
+	\multicolumn{6}{c}{续表~\thetable\hskip1em 某航空动力控制系统普通中断模板：变迁}\\
 	\toprule[1.5pt]
 	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
 	{\heiti 更新} & {\heiti 含义}\\
@@ -488,13 +502,13 @@ $T$和$T^\prime$的数值。其中cTime是AD中断的无中断特权部分的执
 	\bottomrule[1.5pt]
 \end{longtabu}
 
-注意在Auxiliary2到Off的变迁中，时钟没有清零。这是因为在~\ref{subsec:exp_env} 
+注意在Auxiliary2到Off的变迁中，时钟没有清零。这是因为在~\ref{subsubsec:exp_env} 
 小节中的中断源需要用到intTime[id]时钟里的数据来表达中断触发的时序关系。
 
-\subsection{AD中断模板}
-\label{subsec:exp_ad}
+\subsubsection{AD中断模板}
+\label{subsubsec:exp_ad}
 
-AD中断是一个特殊的中断。它与~\ref{subsubsec:segment_intr} 小节中提到的分段中断
+AD中断是一个特殊的中断。它与~\ref{subsec:segment} 小节中提到的分段中断
 类似，也是一个分段中断。然而它的分段的实现并非依赖一个类似于eCos那样完整的机制，
 而是在中断自身调用特殊指令EOI清除了中断服务位，即将ISR寄存器对应位复位。这样做并
 不会立即跳转其他中断去执行，之前被AD中断抢占的的其他中断依旧被抢占着。但是之后触
@@ -505,7 +519,7 @@ AD中断是一个特殊的中断。它与~\ref{subsubsec:segment_intr} 小节中
 
 除此以外，抽象时，我们将一个小周期内的连续6个AD中断看成了一个以减小状态空间，那
 么一个AD中断内部的变迁就需要变得复杂一些。由于原本每个AD中断被分成了两部分，在模
-型中的AD中断就会被分成$2\times 6$段。
+型中的AD中断执行就会被分成$2\times 6$段。
 
 AD中断的状态机如图~\ref{fig:exp_AD} 所示。AD的参数只有中断ID，内部声明只有一个
 用来计数的count。AD中断的位置和变迁说明分别见表~\ref{tab:exp_AD_loc} 和
@@ -514,18 +528,18 @@ AD中断的状态机如图~\ref{fig:exp_AD} 所示。AD的参数只有中断ID�
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\textwidth]{AD}
-	\caption{某嵌入式平台中断模型：AD中断}
+	\caption{某航空动力控制系统中断模型：AD中断}
 	\label{fig:exp_AD}
 \end{figure}
 
 \begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
-	\caption{某嵌入式平台中断模板：位置}
+	\caption{某航空动力控制系统AD中断模板：位置}
 	\label{tab:exp_AD_loc}\\
 	\toprule[1.5pt]
 	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
 	\midrule[1pt]
 	\endfirsthead
-	\multicolumn{4}{c}{续表~\thetable\hskip1em 基本中断模板：位置}\\
+	\multicolumn{4}{c}{续表~\thetable\hskip1em 某航空动力控制系统AD中断模板：位置}\\
 	\toprule[1.5pt]
 	{\heiti 名称} & {\heiti 附加属性} & {\heiti 约束} & {\heiti 含义}\\
 	\midrule[1pt]
@@ -566,14 +580,14 @@ AD中断的状态机如图~\ref{fig:exp_AD} 所示。AD的参数只有中断ID�
 \end{longtabu}
 
 \begin{longtabu} to \linewidth {p{5em}p{5em}XXXX}
-	\caption{嵌入式平台中断模板：变迁 }
+	\caption{某航空动力控制系统AD中断模板：变迁 }
 	\label{tab:exp_AD_mov}\\
 	\toprule[1.5pt]
 	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
 	{\heiti 更新} & {\heiti 含义}\\
 	\midrule[1pt]
 	\endfirsthead
-	\multicolumn{6}{c}{续表~\thetable\hskip1em 基本中断模板：变迁}\\
+	\multicolumn{6}{c}{续表~\thetable\hskip1em某航空动力控制系统AD中断模板：变迁}\\
 	\toprule[1.5pt]
 	{\heiti 迁出位置} & {\heiti 迁入位置} & {\heiti 条件} & {\heiti 同步} & 
 	{\heiti 更新} & {\heiti 含义}\\
@@ -636,8 +650,8 @@ AD中断的状态机如图~\ref{fig:exp_AD} 所示。AD的参数只有中断ID�
 	\bottomrule[1.5pt]
 \end{longtabu}
 
-\subsection{环境模板}
-\label{subsec:exp_env}
+\subsubsection{环境模板}
+\label{subsubsec:exp_env}
 
 环境模板本身并不复杂，但是需要表达出中断的时序关系。在本项目中，中断并不是随机
 触发的。除了前文提到的定时中断和通讯中断以外，还有一条时序约束，即在每个小周期
@@ -655,12 +669,12 @@ AD中断的状态机如图~\ref{fig:exp_AD} 所示。AD的参数只有中断ID�
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.9\textwidth]{env}
-	\caption{某嵌入式平台中断模型：环境模板}
+	\caption{某航空动力控制系统中断模型：环境模板}
 	\label{fig:exp_env}
 \end{figure}
 
-\subsection{系统声明}
-\label{subsec:exp_model_decl}
+\subsubsection{系统声明}
+\label{subsubsec:exp_model_decl}
 
 系统声明很简单，如图~\ref{fig:exp_model_decl} 所示。在此不赘述。
 
@@ -678,7 +692,7 @@ AD中断的状态机如图~\ref{fig:exp_AD} 所示。AD的参数只有中断ID�
 	system intr0, intr1, intr2, intr3, 
 		intr4, intr5, intr6, environment
 	\end{lstlisting}
-	\caption{某嵌入式平台中断模型：系统声明}
+	\caption{某航空动力控制系统中断模型：系统声明}
 	\label{fig:exp_model_decl}
 \end{figure}
 
@@ -700,7 +714,7 @@ AD中断的状态机如图~\ref{fig:exp_AD} 所示。AD的参数只有中断ID�
 中断，即AD中断触发条件满足，AD中断触发。AD中断执行到EOI指令之后，ISR对应位复位，
 此时IRR和ISR所有为均为0，栈内只有AD中断。此时，4号中断触发，抢占CPU。此时，栈内
 4号中断在AD中断之上，也就是说在4号中断执行结束之前，AD中断会被一直阻塞。由
-\ref{subsec:exp_decl} 小节的定义可知$T_4=1011us$，$T^\prime_2=500us$，很显然，
+\ref{subsubsec:exp_decl} 小节的定义可知$T_4=1011us$，$T^\prime_2=500us$，很显然，
 $T_4>T^\prime_2$。因此，AD中断会超时。在与合作方工程师交流之后，我们一致认为在
 系统这种中断触发序列是有可能的。避免方式也很简单，只要将4号中断的触发时机提前，
 保证其在AD执行到EOI之前触发即可。
@@ -712,7 +726,7 @@ $T_4>T^\prime_2$。因此，AD中断会超时。在与合作方工程师交流�
 \end{property}
 
 接着我们尝试验证AD中断之外的其他中断的实时性。经过尝试，性质~\ref{property:some}
-在消耗数小时后报告内存溢出，验证中止。这个结果在意料之中，因为在~\ref{subsec:exp_decl} 
+在消耗数小时后报告内存溢出，验证中止。这个结果在意料之中，因为在~\ref{subsubsec:exp_decl} 
 小节的定义中，我们可以看到0号中断总共可以触发50次，这会极度增大状态空间，内存
 溢出是正常。在尝试了各种办法之后，只有在将0号中断的数量修改到5以下，\uppaal 才会
 给出验证结果\pozhehao 验证通过。
@@ -727,7 +741,7 @@ $T_4>T^\prime_2$。因此，AD中断会超时。在与合作方工程师交流�
 \section{本章小结}
 \label{sec:sum_4}
 
-本章结合实际项目，对某嵌入式平台上的中断驱动程序进行分析，对其中断设置在\uppaal 中
+本章结合实际项目，对某航空动力控制系统上的中断驱动程序进行分析，对其中断设置在\uppaal 中
 构建了形式化模型，然后对其实时性属性进行分析和验证。该工作成功找出一个可能违反中
 断实时性要求的反例，并与对方工程师交流得到确认。然而，由于状态空间太大，该模型对
 其他中断的实时性是否满足要求并没有给出一个最终的结论。

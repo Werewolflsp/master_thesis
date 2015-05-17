@@ -582,10 +582,10 @@ $timeSinceStart$，分别指示中断已经运行的时间和中断响应耗时�
 
 接下来，对给定的中断系统$\Delta=(\varGamma, n)$，我们给出其时间自动机网络。
 
-对一个中断$\gamma=\gamma_b=(id, exeTime)\in\varGamma$，其时间自动机如图
+对一个中断$\gamma=\gamma_b=(id, exeTime)\in\varGamma$，其时间自动机$\beta_b$如图
 \ref{fig:interrupt_basic} 所示。位置及变迁相关的定义参见表
-\ref{tab:basic_intr_loc}\footnote{注意，在时钟导数一栏，因为时钟导数的取值范围
-为$\{0,1\}$，因此这里只列出导数为0的时钟，下同。}和表~\ref{tab:basic_intr_mov}。
+\ref{tab:basic_intr_loc}\footnote{暂停时钟一栏列出在此位置导数为0的时钟，未
+列出时钟导数为1，下同。}和表~\ref{tab:basic_intr_mov}。
 
 \begin{figure}[H]
 	\centering
@@ -679,9 +679,9 @@ $timeSinceStart$，分别指示中断已经运行的时间和中断响应耗时�
 对一个中断$\gamma=\gamma_r=(id, intTime, n)\in\varGamma$，因为$n$的取值会涉及
 到自动机的位置及变迁，因此无法对一个参数化的$n$构造自动机。在此，我们取$n=3$，定
 义变量current指示当前占有CPU的中断实例，并重新定义3个时钟intTime[3]分别刻画该中
-断3个实例的执行时间，时间自动机如图~\ref{fig:interrupt_reentrant} 所示。位置及
-变迁相关的定义参见表~\ref{tab:reentrant_intr_loc}和表~\ref{tab:reentrant_intr_mov}。
-当$n$取其他值时，模型类似。
+断3个实例的执行时间，其时间自动机$\beta_r$如图~\ref{fig:interrupt_reentrant} 
+所示。位置及变迁相关的定义参见表~\ref{tab:reentrant_intr_loc}和
+表~\ref{tab:reentrant_intr_mov}。当$n$取其他值时，模型类似。
 
 \begin{longtabu} to \linewidth {p{5em}p{5em}p{13em}X}
 	\caption{重入中断：位置}
@@ -802,7 +802,7 @@ $timeSinceStart$，分别指示中断已经运行的时间和中断响应耗时�
 \end{figure}
 
 对一个中断$\gamma=\gamma_s=(id, exeTime\_i, exeTime\_d)\in\varGamma$，其时间自
-动机如图~\ref{fig:interrupt_segment} 所示。位置及变迁相关的定义参见表
+动机$\beta_s$如图~\ref{fig:interrupt_segment} 所示。位置及变迁相关的定义参见表
 \ref{tab:sec_intr_loc}和表~\ref{tab:sec_intr_mov}。
 
 \begin{figure}[H]
@@ -924,13 +924,26 @@ $timeSinceStart$，分别指示中断已经运行的时间和中断响应耗时�
 	\bottomrule[1.5pt]
 \end{longtabu}
 
+对中断系统$\Delta=(\varGamma, n)$中，$\gamma\in\varGamma$，$\gamma$在时间自动机网络
+的自动机表示为$\beta$，有
+
+\begin{equation}
+	\beta := \beta_b~|~\beta_r~|~\beta_s
+\end{equation}
+
+对中断系统的时间自动机网络$NTA_\Delta$,则有
+
+\begin{equation}
+	NTA_\Delta := \beta_1~||~\beta_2~||\dots||~\beta_k, k = |\varGamma|
+\end{equation}
+
 \section{本章小结}
 \label{sec:sum_3}
 
 本章从现有研究相对深入透彻的多线程环境出发，立足于软硬件的实现细节，分别对基本中
-断，重入中断和分段中断归纳抽象出自己的模型，并且在\uppaal 中给出了详细的构建。特别
-的，在分段中断的实现原理上，本章对eCos操作系统的内核及HAL层部分代码进行了深入分
-析，详细展示了分段中断这一硬件本身不支持，而由软件二次实现的机制。
+断，重入中断和分段中断归纳其行为模式，分析其实现原理。之后，本章在进行合理抽象和
+假设的基础上，对上述三类中断分别给出了基于扩展的秒表自动机的形式化模型，并给出了
+中断系统的时间自动机网络的定义。
 
 本章构建的三类中断模型是从大量的文献阅读和项目实践中总结出的，涵盖了现有的绝大多
 数中断。在遇到一个不能简单归结为这三类的中断时，也完全可以借鉴构建这三类中断时的
