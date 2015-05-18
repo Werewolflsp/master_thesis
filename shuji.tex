@@ -1,0 +1,21 @@
+\documentclass[master]{thuthesis}
+% 如果要用 thufonts.def，使用 nofonts 选项
+
+\ifxetex
+  \setCJKfamilyfont{zhfs}[RawFeature={vertical:}]{FangSong}
+\else % for latex/pdflatex
+  \usepackage{CJKvert}
+\fi
+
+\begin{document}
+\cauthor{刘盛鹏}
+\ctitle{基于时间自动机的中断实时性分析与验证}
+
+\shuji
+
+\ifxetex
+\shuji[基于时间自动机的中断实时性分析与验证]
+\else
+\shuji[基于时间自动机的中断实时性分析与验证]
+\fi
+\end{document}

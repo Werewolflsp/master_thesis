@@ -1,3 +1,4 @@
+\secretlevel{非公开} \secretyear{2100}
 
 \ctitle{基于时间自动机的\\中断实时性分析与验证}
 % 根据自己的情况选，不用这样复杂
@@ -54,24 +55,45 @@
 
 % 定义中英文摘要和关键字
 \begin{cabstract}
+   随着现在嵌入式程序在各行各业的大量应用，针对嵌入式程序的验证需求也越来越多。
+   中断，作为嵌入式程序的重要组成部分，对其实时性的保证起着至关重要的作用。然而，
+   中断本身的验证难度却比普通的程序大得多。中断具有非对称抢占机制，且大部分平台
+   的中断抢占允许嵌套。部分中断允许被自身新的实例重入。为了追求性能，同时试图保
+   证程序的正确运行，一些中断程序内部随意开关中断。相比于普通应用程序，中断的自
+   由度非常大，对整个系统的操作几乎不受限制。这给针对嵌入式应用场景的实时性分析
+   带来了极大的难度。
+   
    本文总结了三种常见的中断类型，分析了他们的软硬件实现。从实时性角度，本文对这
-   些中断构造了相应的时间自动机模型。结合实际项目，本文应用该建模方法对某嵌入式
-   平台上的中断驱动程序中的中断在\uppaal 中进行建模，并分析和验证了其实时性性质，
-   对其中违反实时性约束的中断设置给出了反例。
+   些中断构造了相应的时间自动机模型。结合实际项目，本文应用该建模方法对在某航空
+   动力控制系统中在\uppaal 中进行建模，并分析和验证了其实时性性质，对其中违反实
+   时性约束的中断设置给出了反例。
 \end{cabstract}
 
-\ckeywords{中断，时间自动机，实时性，建模，验证}
+\ckeywords{中断，时间自动机，实时性分析，建模，验证}
 
 \begin{eabstract} 
+   As embedded programs being adopted heavily almost everywhere, demand
+   for the verification of them have increased greatly during recent years.
+   Interrupt, a very important component of all embedded programs, is vital
+   to the real-time properties of them. However, it is much more difficult
+   to verify an interrupt program than a common one. Interrupts can preempt
+   one another asymmetrically. In most cases, those preemption can be nested.
+   Under certain circumstances, an interrupt can even be preempted by another
+   instance of itself. To pursue the performance while trying to guarantee
+   the correctness, some interrupt programs turn on and off interrupts inside 
+   them arbitrarily. An interrupt enjoys much more freedom an application
+   program. It can do almost everything on the system where it is running, 
+   which brings a great deal of difficulty to the verification of the embedbed
+   scenario.
+	
    The thesis summerized three most common types of interrupts and analyzed
    their implementation from the perspectives of both hardware and software.
    Focusing on the timing property, this thesis constructed models of the 
-   timed automata of the thses interrupts .It gives all the specifics on 
-   abstraction and modelling. The thesis applied the same approach on a set 
-   of interrupt-driven software on some embedded platform from an actual 
-   project. After analysis and verification on its timing properties, the 
-   thesis proved there was a flaw in the interrupt setting and produced a 
-   counter example.
+   timed automata of the thses interrupts. It gives all the specifics on 
+   abstraction and modelling. The thesis applied the same approach on an air 
+   power control system from an actual project. After analysis and verification 
+   on its timing properties, the thesis proved there was a flaw in the 
+   interrupt setting and produced a counter example.
 \end{eabstract}
 
-\ekeywords{Interrupt, Timed Automata, Timing, Model, Verification}
+\ekeywords{Interrupt, Timed Automata, Real-time Analysis, Modeling, Verification}
