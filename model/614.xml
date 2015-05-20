@@ -236,6 +236,7 @@ get_highest_irr() &gt; id</label>
 		<name>AD</name>
 		<parameter>int id</parameter>
 		<declaration>int count; // 最多执行6次
+const int c = 6;
 </declaration>
 		<location id="id8" x="-263" y="-493">
 			<name x="-348" y="-501">Auxiliary1</name>
@@ -319,7 +320,7 @@ D[id] + fix_time()</label>
 		<transition>
 			<source ref="id10"/>
 			<target ref="id17"/>
-			<label kind="guard" x="204" y="-527">count &gt;= 6 &amp;&amp;
+			<label kind="guard" x="204" y="-527">count &gt;= c &amp;&amp;
 intTime[id] &gt;= cTime</label>
 			<label kind="assignment" x="204" y="-493">sp--,
 count = 0,
@@ -342,7 +343,7 @@ D[id] + fix_time()</label>
 		<transition>
 			<source ref="id10"/>
 			<target ref="id14"/>
-			<label kind="guard" x="-76" y="-476">count &lt; 6 &amp;&amp;
+			<label kind="guard" x="-76" y="-476">count &lt; c &amp;&amp;
 intTime[id] &gt;= cTime</label>
 			<label kind="assignment" x="-187" y="-493">count++,
 ISR[id] = true,

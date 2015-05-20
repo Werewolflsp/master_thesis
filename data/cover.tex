@@ -1,5 +1,3 @@
-\secretlevel{非公开} \secretyear{2100}
-
 \ctitle{基于时间自动机的\\中断实时性分析与验证}
 % 根据自己的情况选，不用这样复杂
 \makeatletter
@@ -18,7 +16,7 @@
 \cdepartment[软件学院]{软件学院}
 \cmajor{软件工程}
 \cauthor{刘盛鹏} 
-\csupervisor{顾明 教授}
+\csupervisor{顾~~~~~~~~~~明 教~授}
 % 如果没有副指导老师或者联合指导老师，把下面两行相应的删除即可。
 %\cassosupervisor{贺飞教授}
 % 日期自动生成，如果你要自己写就改这个cdate
@@ -29,7 +27,7 @@
 % \cseconddiscipline{系统结构}
 % \postdoctordate{2009年7月——2011年7月}
 
-\etitle{Timing Analysis on Interrupt\\Based on Timed Automata} 
+\etitle{Timing Analysis of Interrupt\\by Timed Automata} 
 % 这块比较复杂，需要分情况讨论：
 % 1. 学术型硕士
 %    \edegree：必须为Master of Arts或Master of Science（注意大小写）
@@ -55,18 +53,34 @@
 
 % 定义中英文摘要和关键字
 \begin{cabstract}
-   随着现在嵌入式程序在各行各业的大量应用，针对嵌入式程序的验证需求也越来越多。
-   中断，作为嵌入式程序的重要组成部分，对其实时性的保证起着至关重要的作用。然而，
-   中断本身的验证难度却比普通的程序大得多。中断具有非对称抢占机制，且大部分平台
-   的中断抢占允许嵌套。部分中断允许被自身新的实例重入。为了追求性能，同时试图保
-   证程序的正确运行，一些中断程序内部随意开关中断。相比于普通应用程序，中断的自
-   由度非常大，对整个系统的操作几乎不受限制。这给针对嵌入式应用场景的实时性分析
-   带来了极大的难度。
-   
-   本文总结了三种常见的中断类型，分析了他们的软硬件实现。从实时性角度，本文对这
-   些中断构造了相应的时间自动机模型。结合实际项目，本文应用该建模方法对在某航空
-   动力控制系统中在\uppaal 中进行建模，并分析和验证了其实时性性质，对其中违反实
-   时性约束的中断设置给出了反例。
+  随着现在嵌入式程序在各行各业的大量应用，针对嵌入式程序的验证需求也越来越多。
+  中断，作为嵌入式程序的重要组成部分，对嵌入式程序的实时性起着至关重要的作用。
+  然而，中断本身的验证难度却比普通的程序大得多。目前学术界对中断的研究仍停留
+  在传统桌面领域，对中断在嵌入式程序中的复杂行为没有一个全面而精确的描述。这
+  使得对嵌入式程序以及其中的中断的验证缺乏理论依据。同时，在嵌入式程序中断的
+  实时性验证方面，目前应用得最广泛的时间自动机理论还不够完善，无法直接应用到
+  真实的系统中。
+  
+  就此问题，本文从中断的行为模式和实现原理角度，经过深入调研，掌握了市面上主
+  流硬件平台和操作系统的中断的行为和具体实现。调研显示，中断作为一个硬件与软
+  件结合的并发机制，其行为模式十分多样化。相应的，中断背后的实现机制差异也很
+  大。最重要的是，中断的行为不仅仅取决于硬件平台。部分嵌入式操作系统利用底层
+  硬件机制，对中断封装和修改，从而改变了中断的行为模式。
+  
+  经过总结，本文将已知的所有中断归纳为三个类型。本文详细描述了三个中断类型的
+  行为模式，深入分析了他们背后的实现原理，涉及到了硬件平台和部分嵌入式操作系
+  统。经过适度抽象和合理的假设，本文针对三类中断分别给出了形式化的定义。
+  
+  同时，为了研究嵌入式程序中的中断的实时性，本文在现有的时间自动机理论上做了
+  扩展，将秒表自动机扩展到能够描述现有中断行为的混合自动机。本文以扩展后的混
+  合自动机和CCS并行组合为理论基础，构造了上述三类中断的自动机模型，并给出了
+  其组成的自动机网络的形式化定义。
+  
+  至此，本文提出了一个面向嵌入式程序里中断实时性质研究的方法，该方法被应用在
+  针对某航空控制系统的中断实时性验证项目上。借由模型检测工具\uppaal ，本文证
+  明了该系统的中断实时性不满足业务需求，并对其中违反实时性约束的中断设置给出
+  了一条可重现的运行反例。
+  
 \end{cabstract}
 
 \ckeywords{中断，时间自动机，实时性分析，建模，验证}
@@ -76,24 +90,46 @@
    for the verification of them have increased greatly during recent years.
    Interrupt, a very important component of all embedded programs, is vital
    to the real-time properties of them. However, it is much more difficult
-   to verify an interrupt program than a common one. Interrupts can preempt
-   one another asymmetrically. In most cases, those preemption can be nested.
-   Under certain circumstances, an interrupt can even be preempted by another
-   instance of itself. To pursue the performance while trying to guarantee
-   the correctness, some interrupt programs turn on and off interrupts inside 
-   them arbitrarily. An interrupt enjoys much more freedom an application
-   program. It can do almost everything on the system where it is running, 
-   which brings a great deal of difficulty to the verification of the embedbed
-   scenario.
-	
-   The thesis summerized three most common types of interrupts and analyzed
-   their implementation from the perspectives of both hardware and software.
-   Focusing on the timing property, this thesis constructed models of the 
-   timed automata of the thses interrupts. It gives all the specifics on 
-   abstraction and modelling. The thesis applied the same approach on an air 
-   power control system from an actual project. After analysis and verification 
-   on its timing properties, the thesis proved there was a flaw in the 
-   interrupt setting and produced a counter example.
+   to verify an interrupt program than a common one. Acdamic researches
+   on interrupts still remain in the tradtional field, focusing on the desktop
+   environment. There has been none of full and precise description of the
+   complex behavior of interrupts in a embedded program, which leads to
+   lack of theoretical support for verification of the embedded programs
+   along with interrrupts in it. Meanwhile, the theory of timed automata,
+   which is mostly widely applied in verification of real-time properties
+   of embedded programs, is not developed enough to be really applicable to
+   real systems. 
+   
+   To address this problem, a wide survey was conducted on the common hardware
+   platform and embedded operationg systems. It revealed the fact 
+   that the behavior mode of interrupts, which is a parallele mechanism combining
+   both hardware and software, is rather diversed. Correspondingly, the 
+   implementation behind varies greatly. Most importantly, the behavior mode
+   of interrupts depends more than the hardware on which it is running. Some
+   embedded operating systems manipulated the interrupt mechanism of the hardware
+   laying below, encapsulated and modified it, thus changed the behavior mode
+   ultimately. From the perspective of an application program, it is a totally
+   new type of interrupts.
+    
+   The thesis summerized most common interrupts into three types. We decribed
+   the behavior mode of the three types in detail, analyzed their implementation
+   involving both hardware platform and embedded operationg system on it. With
+   moderate abstraction and reasonable assumption, the thesis gives formal
+   definition of three types.
+   
+   To study real-time properties of interrupts in embedded programs, the thesis
+   extended current theory of timed automata, extending the stopwatch automaton
+   to a new hybrid automton which is exactly suited to model the interrupt
+   behavior. Combining the extended hybrid automta and CCS parallele composition,
+   the thesis presented models of the three types of interrupts, and it gives
+   a formal definition of the network of these automata. 
+   
+   Thus, the thesis presented a complete scheme for studying the real-time 
+   properties of interrupts in embedded programs. The scheme has been applied 
+   to a project of verification on real-time properties of interrupts in an 
+   air control system. With the help of model checking tool \uppaal, we 
+   verified the real-times properties, roved there was a flaw in the interrupt 
+   setting and produced a counter example.
 \end{eabstract}
 
 \ekeywords{Interrupt, Timed Automata, Real-time Analysis, Modeling, Verification}
